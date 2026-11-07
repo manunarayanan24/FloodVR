@@ -52,9 +52,17 @@ namespace FloodVR
     }
 
     [Serializable]
+    public class SceneTextEntry
+    {
+        public string id;
+        public string text;
+    }
+
+    [Serializable]
     public class DamageManifestOutput
     {
         public DamageManifestEntry[] items;
+        public SceneTextEntry[] scene_text;
     }
 
     public static class DamageBuilder
@@ -504,7 +512,13 @@ namespace FloodVR
                 position = new Vec3Data { x = di.transform.position.x, y = di.transform.position.y, z = di.transform.position.z }
             }).OrderBy(e => e.id).ToArray();
 
-            DamageManifestOutput output = new DamageManifestOutput { items = entries };
+            SceneText[] allSceneTexts = UnityEngine.Object.FindObjectsByType<SceneText>(FindObjectsSortMode.None);
+            SceneTextEntry[] sceneTextEntries = allSceneTexts
+                .Select(st => new SceneTextEntry { id = st.id, text = st.text })
+                .OrderBy(e => e.id)
+                .ToArray();
+
+            DamageManifestOutput output = new DamageManifestOutput { items = entries, scene_text = sceneTextEntries };
             string json = JsonUtility.ToJson(output, true);
 
             HouseBuilder.EnsureFolder("Assets/StreamingAssets");
@@ -512,7 +526,7 @@ namespace FloodVR
             File.WriteAllText(fullPath, json);
             AssetDatabase.Refresh();
 
-            Debug.Log($"[FloodVR] Exported {entries.Length} damage items to {ManifestOutputPath}");
+            Debug.Log($"[FloodVR] Exported {entries.Length} damage items and {sceneTextEntries.Length} scene_text entries to {ManifestOutputPath}");
         }
     }
 }

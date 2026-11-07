@@ -86,6 +86,12 @@ namespace FloodVR
     }
 
     [Serializable]
+    public class SceneTextData
+    {
+        public string id, targetId, text;
+    }
+
+    [Serializable]
     public class HouseLayout
     {
         public HouseData house;
@@ -94,6 +100,7 @@ namespace FloodVR
         public StandPointData[] standPoints;
         public FurnitureData[] furniture;
         public OutletData[] outlets;
+        public SceneTextData[] sceneTexts;
         public SceneData scene;
     }
 
@@ -128,6 +135,7 @@ namespace FloodVR
             BuildStandPoints(root.transform, layout);
             BuildFurniture(root.transform, layout);
             BuildOutlets(root.transform, layout);
+            SceneTextBuilder.BuildSceneTexts(layout);
             DamageBuilder.ApplyDamage(root.transform, layout);
             ConfigureCameraAndLight(layout.scene);
 
