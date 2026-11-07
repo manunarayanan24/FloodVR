@@ -1,9 +1,37 @@
 # Machine 3 (Windows) — AI + security status
 
-Owner: AI + security workstream. Touches only `agents/`, `evals/`, `contracts/`,
-`docs/STATUS-windows.md`. **Nothing under `Assets/` is modified.**
+Owner: Abhinav. Lane: `agents/`, `evals/`, `contracts/` **except
+`contracts/samples/`**, `docs/STATUS-windows.md`. **Nothing under `Assets/` is
+modified.**
 
 Last updated: 2026-11-07
+
+---
+
+## Live API (current)
+
+**Base URL:** `https://operates-voters-officials-lenses.trycloudflare.com`
+
+> Quick tunnels die when `cloudflared` stops. This URL is valid only while the
+> Windows box is up — check here after any restart. Read it at runtime (`?api=`),
+> never bake it into a build.
+
+| Method | Path | State | Returns |
+|---|---|---|---|
+| `GET` | `/health` | live | offline flag, key presence, model ids, audit-chain status |
+| `GET` | `/manifest` | live | Mac 1's `contracts/samples/house_manifest.json` |
+| `POST` | `/assess` | live | claim draft (`contracts/claim_draft.schema.json`) |
+| `POST` | `/attack-demo` | live | one attack, guarded vs unguarded, side by side |
+| `GET` | `/results` | live | latest eval numbers (`evals/results.json`) |
+| `GET` | `/callouts` | **schema only** | `contracts/callouts.schema.json` — not implemented yet |
+| `POST` | `/voice` | **schema only** | `contracts/voice.schema.json` — not implemented yet |
+
+CORS allows `https://*.vercel.app` and `http://localhost:<port>`.
+
+Quick check from any machine:
+```bash
+curl https://operates-voters-officials-lenses.trycloudflare.com/health
+```
 
 ---
 
@@ -29,32 +57,55 @@ Held-out set: **not generated yet.** `python -m evals.gen_variants` has Claude
 write fresh attacks, and `python -m evals.run` measures them *before any rule is
 touched*. Both numbers go in the report; judges see the honest one.
 
-## Blocked on keys
+## Live NVIDIA findings (worth knowing on the other machines)
 
-Nothing live has run yet. `agents/llm.py` has never made a real network call,
-and the NVIDIA model ids in `agents/config.yaml` are marked `unverified`.
+We are live on NVIDIA. First real network calls this project has made, and four
+things broke that would have broken on stage:
 
-Needs `agents/.env` (gitignored, never printed or committed):
-- `NVIDIA_API_KEY` — build.nvidia.com, free developer credits, $0
-- `ANTHROPIC_API_KEY` — console.anthropic.com, pay-as-you-go. Set a $20 limit.
+1. **Every model id in `config.yaml` was dead** — 404 or 410. The ids in the
+   original brief do not exist on the hosted API. Working ids are now pinned in
+   `agents/config.yaml` with verified fallbacks.
+2. **`GET /models` listing a model does not mean you can call it.**
+   `nvidia/nemotron-3-super-120b-a12b` is listed and still 404s on chat
+   completions. Always probe, never trust the listing.
+3. **Nemotron 3.5 models are reasoning-tuned.** They spend the token budget on
+   `reasoning_content` before writing `content`. With a small `max_tokens` you
+   get an empty string and `finish_reason: "stop"` — indistinguishable from a
+   dead model. There is now a 512-token floor.
+4. **The endpoint answers bursts with HTTP 403**, not 429. Throttling and
+   backoff added.
 
-Then:
-```
-python -m agents.tools.verify_models --probe-guard
-python -m evals.gen_variants
-python -m evals.run --guard-model
-```
+**The guard model does not detect injection.** Verified against a real raw
+reply: `{"User Safety": "safe"}` for our live fridge-note attack. NVIDIA's
+content-safety models catch harmful *content* (violence, hate), which is a
+different problem. The verdict parser is correct; the model is the wrong tool.
+The second layer is **disabled** until the bake-off finds a candidate that earns
+it. We will report whichever way it lands rather than claim a layer that does
+nothing.
+
+## Still blocked
+
+- `ANTHROPIC_API_KEY` is **not set** in `agents/.env`. Held-out attack
+  generation (`python -m evals.gen_variants`, ~20 cents) cannot run, so the only
+  attack numbers we have are the optimistic ones.
+- **`screens.json` answer key** from Mac 1 — the Vision Inspector cannot be
+  scored without it. The 9 PNGs have landed.
+- **Contents items with `heightAboveFloor` and `severity: 0`** from Mac 1 — the
+  fraud-checker trap. Schema and pipeline already handle both; there is just no
+  data to exercise them yet.
 
 ## Contract with the Unity machines
 
-- `contracts/damage_manifest.schema.json` matches `Assets/Scripts/DamageItem.cs`
-  field for field. If Mac 1 adds a field, update the schema, not the C#.
-- `contracts/samples/house_manifest.json` is generated from the real Unity export
-  by `python -m agents.tools.make_sample_manifest`. It refuses to overwrite an
-  existing file — if Mac 1 pushes their own, theirs wins.
+- `contracts/damage_manifest.schema.json` tracks `DamageItem.cs`, now including
+  `severity: 0` and `heightAboveFloor`. If Mac 1 adds a field, the schema
+  changes, not the C#.
+- `contracts/samples/` is **Mac 1's lane and is never written from Windows.**
+  `python -m agents.tools.make_sample_manifest` writes
+  `contracts/fixtures/house_manifest.windows.json` instead, used only as a
+  fallback when Mac 1's sample is missing.
 - `contracts/claim_draft.schema.json` is what `/assess` returns.
-- Still needed from Mac 1 or Mac 2: **one VR screenshot with the fridge note
-  visible**, for the vision path. Drop it in `contracts/samples/screenshots/`.
+- `contracts/callouts.schema.json` and `contracts/voice.schema.json` are
+  **proposals for Mac 2** — comment before building against them.
 
 ## Design decisions worth knowing
 

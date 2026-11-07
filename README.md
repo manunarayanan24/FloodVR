@@ -198,8 +198,13 @@ tools → Consistency Checker → Voice Notes → `/callouts` → adjuster conso
 - **Mac 2:** VR rig, head tracking, CardboardVR template, Build Web menu, this README's first
   draft — pushed. Next: harden BuildWeb (add rig if missing), first iPhone test + Vercel deploy,
   gaze selection + waterline readout, then headset callouts + tap-to-talk.
-- **Windows:** full AI stack built and committed **locally** (orchestrator + specialists, guard,
-  39 seed attacks, FastAPI, tunnel) — **not pushed yet**. Waiting on API keys.
+- **Windows:** AI stack pushed. Live on NVIDIA — **every model id in the original brief was
+  dead (404/410)**; working ids + fallbacks pinned in `agents/config.yaml`. Adopted the new
+  contract (severity 0, `heightAboveFloor`, `scene_text` → guard; the real fridge note fires
+  3 rules). `/callouts` + `/voice` schemas pushed for Mac 2. Tunnel URL + endpoint list in
+  `docs/STATUS-windows.md`. **The NVIDIA guard model scored our live attack "safe"** — content
+  safety ≠ injection detection, so the 2nd layer stays off until a bake-off earns it. Blocked:
+  `ANTHROPIC_API_KEY` (held-out attack numbers), `screens.json`, severity-0 contents items.
 
 ## 9. Open requests (cross-lane)
 

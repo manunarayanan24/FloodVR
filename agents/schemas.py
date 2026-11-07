@@ -74,7 +74,9 @@ class DamageItem(BaseModel):
     # fraud-checker trap: the homeowner claims them destroyed, the scene says no.
     severity: int = Field(ge=0, le=5)
     measuredValue: float = Field(ge=0)
-    unit: str = Field(min_length=1, max_length=40)
+    # May be empty: Mac 1's severity-0 "present but undamaged" items carry no
+    # measurement, so they ship with unit "".
+    unit: str = Field(default="", max_length=40)
     note: str = Field(max_length=2000)
     heightAboveFloor: float | None = Field(default=None, ge=0)
     room: str | None = None
@@ -84,10 +86,14 @@ class DamageItem(BaseModel):
     def height_m(self) -> float:
         """Height used for the wind-vs-water test.
 
-        `heightAboveFloor` is authoritative when Mac 1 supplies it; otherwise
-        fall back to the transform's y, which is the object's origin.
+        Mac 1 populates `heightAboveFloor` meaningfully only for contents items
+        (a laptop on a shelf at 1.6 m). Everything else carries a literal 0.0 —
+        including `kitchen_ceiling_stain`, whose real height is 2.58 m. Treating
+        0.0 as authoritative would put the ceiling stain below the waterline and
+        destroy the wind-vs-water determination, so 0.0 means "not supplied" and
+        we fall back to the transform's y.
         """
-        if self.heightAboveFloor is not None:
+        if self.heightAboveFloor:  # non-zero and not None
             return self.heightAboveFloor
         return self.position.y if self.position else 0.0
 
