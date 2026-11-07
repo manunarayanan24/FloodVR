@@ -86,6 +86,14 @@ namespace FloodVR
                 GameObject carrier = ApplyEffect(houseRoot, damageRoot.transform, layout, item);
                 if (carrier == null) continue;
 
+                bool mutating = item.effect.type == "scaleFurniture" || item.effect.type == "tipFurniture"
+                    || item.effect.type == "darkenFurniture" || item.effect.type == "flagExisting";
+                if (!mutating && carrier.GetComponent<FloodVisual>() == null)
+                {
+                    FloodVisual fv = carrier.AddComponent<FloodVisual>();
+                    fv.additiveOnly = true;
+                }
+
                 DamageItem di = carrier.GetComponent<DamageItem>();
                 if (di == null) di = carrier.AddComponent<DamageItem>();
                 di.id = item.id;
@@ -106,11 +114,7 @@ namespace FloodVR
             switch (fx.type)
             {
                 case "waterline":
-                    SplitWallsAtWaterline(houseRoot, fx.heightM, fx.darkenFactor);
-                    GameObject waterlineMarker = new GameObject($"Damage_{item.id}");
-                    waterlineMarker.transform.SetParent(damageRoot, false);
-                    waterlineMarker.transform.position = new Vector3(layout.house.width / 2f, fx.heightM, layout.house.depth / 2f);
-                    return waterlineMarker;
+                    return BuildWaterlineOverlays(damageRoot, layout, item, fx);
 
                 case "floorMud":
                     return BuildFloorMud(damageRoot, layout, item, fx);
@@ -150,47 +154,68 @@ namespace FloodVR
             return layout.rooms?.FirstOrDefault(r => r.id == roomId);
         }
 
-        private static void SplitWallsAtWaterline(Transform houseRoot, float waterlineHeight, float darkenFactor)
+        // Purely additive: lays a slightly-oversized dark overlay panel over the
+        // bottom of every wall span that touches the ground, so it can be
+        // toggled off entirely for the pre-flood view without needing to
+        // un-resize the original wall geometry.
+        private static GameObject BuildWaterlineOverlays(Transform damageRoot, HouseLayout layout, DamageItemData item, DamageEffect fx)
         {
-            Transform wallsRoot = houseRoot.Find("Walls");
-            if (wallsRoot == null) return;
+            GameObject group = new GameObject($"Damage_{item.id}");
+            group.transform.SetParent(damageRoot, false);
 
-            Material wetMat = HouseBuilder.GetOrCreateMaterial(
-                HouseBuilder.materialCache.TryGetValue("Wall", out Material dry) ? dry.color * darkenFactor : Color.gray * darkenFactor,
-                "WallWet");
+            Color darkColor = layout.house.wallColor.ToColor() * fx.darkenFactor;
+            Material mat = HouseBuilder.GetOrCreateMaterial(darkColor, "WallWet");
 
-            List<Transform> segments = new();
-            CollectCubeSegments(wallsRoot, segments);
+            float waterlineHeight = fx.heightM;
+            float wallHeight = layout.house.wallHeight;
+            float thickness = layout.house.wallThickness * 1.02f;
+            int segIndex = 0;
 
-            foreach (Transform seg in segments)
+            foreach (WallData wall in layout.walls)
             {
-                float height = seg.localScale.y;
-                float bottom = seg.position.y - height / 2f;
-                float top = seg.position.y + height / 2f;
-                if (bottom > 0.01f || top <= waterlineHeight + 0.001f) continue;
+                Vector3 p1 = new Vector3(wall.x1, 0f, wall.z1);
+                Vector3 p2 = new Vector3(wall.x2, 0f, wall.z2);
+                Vector3 delta = p2 - p1;
+                float totalLength = delta.magnitude;
+                if (totalLength < 0.001f) continue;
+                Vector3 dir = delta.normalized;
+                float angle = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
 
-                float upperHeight = top - waterlineHeight;
-                float lowerHeight = waterlineHeight - bottom;
+                List<OpeningData> openings = (wall.openings ?? new OpeningData[0]).OrderBy(o => o.start).ToList();
+                float cursor = 0f;
+                foreach (OpeningData o in openings)
+                {
+                    if (o.start > cursor + 0.0001f)
+                        EmitWaterlineOverlaySegment(group.transform, p1, dir, angle, cursor, o.start, 0f, Mathf.Min(waterlineHeight, wallHeight), thickness, mat, ref segIndex);
 
-                seg.localScale = new Vector3(seg.localScale.x, upperHeight, seg.localScale.z);
-                seg.position = new Vector3(seg.position.x, waterlineHeight + upperHeight / 2f, seg.position.z);
+                    if (o.bottom > 0.0001f)
+                        EmitWaterlineOverlaySegment(group.transform, p1, dir, angle, o.start, o.end, 0f, Mathf.Min(waterlineHeight, o.bottom), thickness, mat, ref segIndex);
 
-                GameObject wetSeg = GameObject.Instantiate(seg.gameObject, seg.parent);
-                wetSeg.name = seg.name + "_wet";
-                wetSeg.transform.localScale = new Vector3(seg.localScale.x, lowerHeight, seg.localScale.z);
-                wetSeg.transform.position = new Vector3(seg.position.x, bottom + lowerHeight / 2f, seg.position.z);
-                wetSeg.transform.rotation = seg.rotation;
-                wetSeg.GetComponent<Renderer>().sharedMaterial = wetMat;
+                    cursor = o.end;
+                }
+
+                if (cursor < totalLength - 0.0001f)
+                    EmitWaterlineOverlaySegment(group.transform, p1, dir, angle, cursor, totalLength, 0f, Mathf.Min(waterlineHeight, wallHeight), thickness, mat, ref segIndex);
             }
+
+            return group;
         }
 
-        private static void CollectCubeSegments(Transform root, List<Transform> result)
+        private static void EmitWaterlineOverlaySegment(Transform parent, Vector3 p1, Vector3 dir, float angle,
+            float segStart, float segEnd, float bottom, float top, float thickness, Material mat, ref int segIndex)
         {
-            foreach (Transform child in root)
-            {
-                if (child.GetComponent<MeshFilter>() != null) result.Add(child);
-                CollectCubeSegments(child, result);
-            }
+            float length = segEnd - segStart;
+            if (length <= 0.0001f || top - bottom <= 0.0001f) return;
+
+            float centerDist = (segStart + segEnd) / 2f;
+            Vector3 pos = p1 + dir * centerDist;
+            pos.y = (bottom + top) / 2f;
+
+            GameObject seg = HouseBuilder.CreatePrimitiveChild(PrimitiveType.Cube, $"waterline_{segIndex++}", parent);
+            seg.transform.position = pos;
+            seg.transform.rotation = Quaternion.Euler(0f, angle, 0f);
+            seg.transform.localScale = new Vector3(thickness, top - bottom, length);
+            seg.GetComponent<Renderer>().sharedMaterial = mat;
         }
 
         private static GameObject BuildFloorMud(Transform damageRoot, HouseLayout layout, DamageItemData item, DamageEffect fx)
@@ -270,11 +295,26 @@ namespace FloodVR
                 Debug.LogWarning($"[FloodVR] scaleFurniture target '{fx.targetId}' not found for '{item.id}'");
                 return null;
             }
-            go.transform.localScale *= fx.scaleMultiplier;
+
             Renderer rend = go.GetComponent<Renderer>();
+            Vector3 cleanScale = go.transform.localScale;
+            Vector3 damagedScale = cleanScale * fx.scaleMultiplier;
+            Color cleanColor = rend != null ? rend.sharedMaterial.color : Color.white;
+            Color damagedColor = cleanColor * fx.darkenFactor;
+
+            FloodVisual fv = go.AddComponent<FloodVisual>();
+            fv.additiveOnly = false;
+            fv.cleanLocalScale = cleanScale;
+            fv.damagedLocalScale = damagedScale;
+            fv.cleanColor = cleanColor;
+            fv.damagedColor = damagedColor;
+            fv.cleanLocalPosition = fv.damagedLocalPosition = go.transform.localPosition;
+            fv.cleanLocalRotation = fv.damagedLocalRotation = go.transform.localRotation;
+
+            go.transform.localScale = damagedScale;
             if (rend != null)
             {
-                rend.sharedMaterial.color *= fx.darkenFactor;
+                rend.sharedMaterial.color = damagedColor;
                 EditorUtility.SetDirty(rend.sharedMaterial);
             }
             return go;
@@ -309,10 +349,25 @@ namespace FloodVR
                     break;
             }
 
-            go.transform.rotation = Quaternion.AngleAxis(fx.angleDeg, axisVec) * go.transform.rotation;
-            Vector3 pos = go.transform.position;
-            pos.y = newHalfHeight;
-            go.transform.position = pos;
+            Quaternion cleanRotation = go.transform.localRotation;
+            Vector3 cleanPosition = go.transform.localPosition;
+
+            Quaternion damagedRotation = Quaternion.AngleAxis(fx.angleDeg, axisVec) * cleanRotation;
+            Vector3 damagedPosition = cleanPosition;
+            damagedPosition.y = newHalfHeight;
+
+            FloodVisual fv = go.AddComponent<FloodVisual>();
+            fv.additiveOnly = false;
+            fv.cleanLocalRotation = cleanRotation;
+            fv.damagedLocalRotation = damagedRotation;
+            fv.cleanLocalPosition = cleanPosition;
+            fv.damagedLocalPosition = damagedPosition;
+            fv.cleanLocalScale = fv.damagedLocalScale = go.transform.localScale;
+            Renderer rend = go.GetComponent<Renderer>();
+            fv.cleanColor = fv.damagedColor = rend != null ? rend.sharedMaterial.color : Color.white;
+
+            go.transform.localRotation = damagedRotation;
+            go.transform.localPosition = damagedPosition;
             return go;
         }
 
@@ -325,9 +380,13 @@ namespace FloodVR
                 return null;
             }
             Renderer rend = go.GetComponent<Renderer>();
+            Color cleanColor = rend != null ? rend.sharedMaterial.color : Color.white;
+            Color damagedColor = cleanColor * fx.darkenFactor;
+            AttachUnchangedTransformFloodVisual(go, cleanColor, damagedColor);
+
             if (rend != null)
             {
-                rend.sharedMaterial.color *= fx.darkenFactor;
+                rend.sharedMaterial.color = damagedColor;
                 EditorUtility.SetDirty(rend.sharedMaterial);
             }
             return go;
@@ -342,12 +401,27 @@ namespace FloodVR
                 return null;
             }
             Renderer rend = go.GetComponent<Renderer>();
+            Color cleanColor = rend != null ? rend.sharedMaterial.color : Color.white;
+            Color damagedColor = fx.color.ToColor();
+            AttachUnchangedTransformFloodVisual(go, cleanColor, damagedColor);
+
             if (rend != null)
             {
-                rend.sharedMaterial.color = fx.color.ToColor();
+                rend.sharedMaterial.color = damagedColor;
                 EditorUtility.SetDirty(rend.sharedMaterial);
             }
             return go;
+        }
+
+        private static void AttachUnchangedTransformFloodVisual(GameObject go, Color cleanColor, Color damagedColor)
+        {
+            FloodVisual fv = go.AddComponent<FloodVisual>();
+            fv.additiveOnly = false;
+            fv.cleanColor = cleanColor;
+            fv.damagedColor = damagedColor;
+            fv.cleanLocalScale = fv.damagedLocalScale = go.transform.localScale;
+            fv.cleanLocalPosition = fv.damagedLocalPosition = go.transform.localPosition;
+            fv.cleanLocalRotation = fv.damagedLocalRotation = go.transform.localRotation;
         }
 
         private static GameObject BuildCeilingStain(Transform damageRoot, HouseLayout layout, DamageItemData item, DamageEffect fx)
@@ -377,22 +451,39 @@ namespace FloodVR
             return decal;
         }
 
+        // Opens Assets/Scenes/House.unity if it isn't already the active scene.
+        // Returns false (and logs) if the scene doesn't exist yet.
+        internal static bool EnsureHouseSceneOpen()
+        {
+            if (GameObject.Find(HouseBuilder.HouseRootName) != null) return true;
+
+            string fullScenePath = Path.Combine(Application.dataPath, "../" + HouseBuilder.ScenePath);
+            if (!File.Exists(fullScenePath))
+            {
+                Debug.LogError("[FloodVR] House.unity not found. Run Tools > FloodVR > Build House first.");
+                return false;
+            }
+
+            EditorSceneManager.OpenScene(HouseBuilder.ScenePath);
+            return true;
+        }
+
+        [MenuItem("Tools/FloodVR/Show Pre-Flood (Clean)")]
+        public static void ShowPreFlood()
+        {
+            if (EnsureHouseSceneOpen()) FloodState.Show(false);
+        }
+
+        [MenuItem("Tools/FloodVR/Show Post-Flood (Damaged)")]
+        public static void ShowPostFlood()
+        {
+            if (EnsureHouseSceneOpen()) FloodState.Show(true);
+        }
+
         [MenuItem("Tools/FloodVR/Export Damage Manifest")]
         public static void ExportDamageManifest()
         {
-            if (GameObject.Find(HouseBuilder.HouseRootName) == null)
-            {
-                string fullScenePath = Path.Combine(Application.dataPath, "../" + HouseBuilder.ScenePath);
-                if (File.Exists(fullScenePath))
-                {
-                    EditorSceneManager.OpenScene(HouseBuilder.ScenePath);
-                }
-                else
-                {
-                    Debug.LogError("[FloodVR] House.unity not found. Run Tools > FloodVR > Build House first.");
-                    return;
-                }
-            }
+            if (!EnsureHouseSceneOpen()) return;
 
             DamageItem[] allItems = UnityEngine.Object.FindObjectsByType<DamageItem>(FindObjectsSortMode.None);
             if (allItems.Length == 0)

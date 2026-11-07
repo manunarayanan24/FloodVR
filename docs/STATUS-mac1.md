@@ -1,7 +1,7 @@
 # Mac 1 status
 
-**Done:** House + damage pipeline (prior session). StandPoint_Hallway/Living/Kitchen (1.6m eye height, facing each room's worst damage) added to house_layout.json and built by HouseBuilder.cs. TextMeshPro package + essential resources imported for task 3.
+**Done:** House + damage pipeline. StandPoint_Hallway/Living/Kitchen added. TextMeshPro imported. Pre/post flood toggle: FloodState.Show(bool) + FloodVisual components + Tools > FloodVR > Show Pre-Flood/Post-Flood menu items; waterline refactored to a pure additive overlay so it can be hidden cleanly.
 
-**Doing:** Pre/post flood toggle (FloodState.Show).
+**Doing:** Prompt-injection sticky note prop (TextMeshPro + SceneText) on the fridge.
 
 **Blocked:** Nothing.
