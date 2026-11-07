@@ -45,21 +45,27 @@ def _loose(word: str) -> str:
 RULES: list[Rule] = [
     Rule(
         "R01_instruction_override",
-        _rx(rf"(?:{_loose('ignore')}|disregard|forget|override|supersede|"
-            rf"{_loose('ignore')}\s+all)"
-            r"[\s\w,'’]{0,40}?(previous|prior|above|earlier|all|any|your)"
-            r"[\s\w'’]{0,25}?(instruction|prompt|rule|direction|guideline|system|training)"),
+        _rx(rf"(?:{_loose('ignore')}|disregard|forget|override|supersede"
+            r"|ignora|ignorez|ignorar|oubliez|olvida|vergiss|忽略|무시)"
+            r"[\s\w,'’]{0,40}?"
+            r"(previous|prior|above|earlier|all|any|your|anterior|anteriores|"
+            r"precedente|precedentes|vorherige)"
+            r"[\s\w'’]{0,25}?"
+            r"(instruction|instruccion|instrucciones|prompt|rule|regla|direction|"
+            r"guideline|system|training|cost\s*table|table|constraint|limit|policy)"),
         "critical", 1.0,
-        "Classic instruction-override opener.",
+        "Instruction-override opener, including common non-English forms. The "
+        "object list covers 'your cost table' as well as 'previous instructions'.",
     ),
     Rule(
         "R02_fake_role_tag",
-        _rx(r"(^|\n|\s)(<\s*/?\s*(system|assistant|instruction)[^>]*>"
+        _rx(r"(<\|[a-z_]+\|>"                      # <|im_start|>, anywhere
+            r"|\[/?INST\]|<</?SYS>>"
+            r"|(^|\n|\s|_)(<\s*/?\s*(system|assistant|instruction)[^>]*>"
             r"|\[\s*(system|assistant|admin|developer)\s*\]"
             r"|#{1,4}\s*(system|instruction)\b"
             r"|\b(system|assistant|developer)\s*:\s*(?=\S)"
-            r"|\bAI\s+(ADJUSTER|AGENT|ASSISTANT|MODEL)\s*[:,]"
-            r"|<\|[a-z_]+\|>)"),
+            r"|\bai\s+(adjuster|agent|assistant|model)\s*[:,]))"),
         "critical", 1.0,
         "Forged role/turn delimiter trying to open a privileged channel.",
     ),
@@ -98,9 +104,13 @@ RULES: list[Rule] = [
     ),
     Rule(
         "R07_prompt_exfil",
-        _rx(r"\b(print|reveal|repeat|output|show|disclose|echo|dump|summar(?:ise|ize))\b"
-            r"[\s\w,]{0,25}?\b(system\s+prompt|your\s+(instructions|prompt|rules|configuration)"
-            r"|the\s+prompt|canary|api[\s_-]?key|secret|credential)"),
+        # No trailing \b on the verb: an underscore is a word character, so
+        # "reveal_your_instructions" in a filename would not match otherwise.
+        _rx(r"(^|[^a-z])(print|reveal|repeat|output|show|disclose|echo|dump|leak"
+            r"|summar(?:ise|ize))"
+            r"[\s\w,_-]{0,25}?"
+            r"(system[\s_-]+prompt|your[\s_-]+(instructions|prompt|rules|configuration)"
+            r"|the[\s_-]+prompt|canary|api[\s_-]?key|secret|credential)"),
         "critical", 1.0,
         "Attempts to leak the system prompt, canary or credentials.",
     ),
@@ -121,18 +131,27 @@ RULES: list[Rule] = [
     ),
     Rule(
         "R10_url_or_exfil_target",
-        _rx(r"(https?://|www\.)[^\s\"'<>]{4,}"
-            r"|\b(send|post|upload|forward|transmit|email)\b[\s\w,]{0,20}?\b(to|at)\b\s*\S+@\S+"),
+        _rx(r"\b(send|post|upload|forward|transmit|email|exfiltrate|submit|deliver)\b"
+            r"[\s\w,'’]{0,30}?(https?://|www\.|\S+@\S+)"
+            r"|(https?://|www\.)[^\s\"'<>]{4,}[\s\S]{0,40}?"
+            r"\b(before|after)\b[\s\w]{0,20}?\b(finish|complet|submit|respond)"),
         "medium", 0.55,
-        "URL or exfiltration target in untrusted text.",
+        "URL paired with a directive to send data there. A bare URL is NOT "
+        "matched — real claim documents cite the carrier's own website.",
     ),
     Rule(
         "R11_urgency_or_threat",
-        _rx(r"\b(urgent(ly)?|immediately|right now|without (delay|question|review)"
-            r"|do not (ask|verify|check|flag|review)|no human review|skip (the )?review"
-            r"|bypass|you (must|will|have to)) \b"),
+        _rx(r"\b(without\s+(any\s+)?(delay|question|further\s+)?(review|verification|checking)"
+            r"|without\s+(delay|question)"
+            r"|do(es)?\s+not\s+(need\s+to\s+|have\s+to\s+)?(ask|verify|check|flag|review|"
+            r"escalate|confirm)"
+            r"|no\s+(human\s+)?(review|verification|approval)\s+(is\s+)?(needed|required)"
+            r"|skip\s+(the\s+)?(review|check|verification|human)"
+            r"|bypass\s+(the\s+)?\w+"
+            r"|no\s+need\s+to\s+(flag|review|verify|escalate))\b"),
         "medium", 0.6,
-        "Pressure language used to suppress the human-review gate.",
+        "Suppression of the human-review gate. Bare urgency words ('urgent', "
+        "'immediately') are NOT matched — legitimate contractors write that way.",
     ),
     Rule(
         "R12_scope_expansion",
@@ -141,6 +160,37 @@ RULES: list[Rule] = [
             r"(\$\s?[\d,]{3,}|\b(cost|estimate|amount|total|claim)\b)"),
         "high", 0.8,
         "Tries to append cost beyond what the manifest supports.",
+    ),
+    Rule(
+        "R13_persona_override",
+        _rx(r"\b(you are now|from now on you|act as|pretend (to be|you are)|"
+            r"stay in character|let'?s play a game|roleplay|role-play|"
+            r"you (are|will be) (an? )?\w*(adjuster|assistant|ai|mode)\b)"
+            r"[\s\S]{0,80}?"
+            r"\b(approv|pay|maximum|max\b|total loss|unsafe|unrestricted|no limits|"
+            r"always|override|ignore)"
+            r"|\b(you are now in|enter|switch to)\s+\w+\s+mode\b"),
+        "high", 0.85,
+        "Persona/role-play reframing used to swap the agent's objective.",
+    ),
+    Rule(
+        "R14_payment_directive_multilingual",
+        _rx(r"\b(aprueb[ae]|apruebe|aprobar|pagu[ae]|paga)\b[\s\w]{0,20}?"
+            r"\b(maximo|máximo|total|completo|limite)"
+            r"|\b(pago|pagamento|paiement|paiment)\s+(maximo|máximo|maximum|total)"
+            r"|\bperte\s+totale\b|\bp[eé]rdida\s+total\b"
+            r"|\bclass(?:ez|ifiez|ifique|ifiquen)\b[\s\w]{0,25}?\b(tout|todo|comme|como)\b"),
+        "critical", 1.0,
+        "Non-English payout/classification directive.",
+    ),
+    Rule(
+        "R15_prior_approval_claim",
+        _rx(r"\b(already (been )?(approved|authorised|authorized|signed off|cleared)"
+            r"|approved (it )?(verbally|by phone|yesterday|earlier)"
+            r"|(adjuster|supervisor|manager) (has )?already (approved|cleared|signed))\b"),
+        "high", 0.8,
+        "Claims a prior human approval that the channel cannot evidence — used "
+        "to argue the review gate has already been satisfied.",
     ),
 ]
 
