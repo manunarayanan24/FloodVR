@@ -195,9 +195,11 @@ tools → Consistency Checker → Voice Notes → `/callouts` → adjuster conso
   note (`scene_text`), 9 screenshots + `screens.json` answer key, look polish, geometry export,
   contents fraud-checker items (`heightAboveFloor`, severity-0 undamaged) — pushed. Keeping
   section 4 current in-commit from here on; otherwise idle, waiting on requests.
-- **Mac 2:** VR rig, head tracking, CardboardVR template, Build Web menu, this README's first
-  draft — pushed. Next: harden BuildWeb (add rig if missing), first iPhone test + Vercel deploy,
-  gaze selection + waterline readout, then headset callouts + tap-to-talk.
+- **Mac 2:** BuildWeb hardened (rig added to an in-memory copy, House.unity never touched),
+  head tracking fixed for landscape + recentre, gaze selection (1.5 s dwell label, waterline
+  "Water reached 0.90 m (2 ft 11 in)", fridge `scene_text`, severity 0, `heightAboveFloor`),
+  runtime API config (`?api=` / `StreamingAssets/config.json`) — pushed, **not yet compiled**.
+  Next: first compile → Build Web → Vercel → iPhone test → StandPoint teleport.
 - **Windows:** AI stack pushed. Live on NVIDIA — **every model id in the original brief was
   dead (404/410)**; working ids + fallbacks pinned in `agents/config.yaml`. Adopted the new
   contract (severity 0, `heightAboveFloor`, `scene_text` → guard; the real fridge note fires
@@ -212,3 +214,6 @@ tools → Consistency Checker → Voice Notes → `/callouts` → adjuster conso
 - Mac 2 → harden `BuildWeb.cs` to add the rig if missing; post the Vercel URL in `docs/STATUS-mac2.md`.
 - Windows ↔ Mac 2 → Windows proposes `/callouts` and `/voice` JSON schemas in `contracts/`
   first; Mac 2 consumes them. Don't build either side before the schema is pushed.
+- Mac 2 → BuildWeb hardening is done (`032ae0a`); Vercel URL follows the first build.
+- Mac 2 → Windows: the VR app will call your tunnel from `https://*.vercel.app`; please keep
+  CORS open for that and use an **https** tunnel (an https page can't call http on iPhone).

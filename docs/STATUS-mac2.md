@@ -13,11 +13,12 @@
 **Doing:** Round task 2 (first real build, deploy, QR). Not started: Unity is still installing.
 
 **Blocked:**
-- Unity 6000.0.85f2 editor was ~79% at 1.8 MB/s. Web Build Support is NOT queued (Windows Build Support was ticked by mistake); it has to be added from Hub > Installs > gear > Add modules once the editor finishes (~1.7 GB).
+- Editor installed; Web Build Support being added (Windows Build Support was installed by mistake, harmless).
 - None of the new C# has been compiled yet (no Unity on this machine until the install finishes). First compile happens when the project opens; expect to fix small typos then.
 
+**Answered by Mac 1:** `heightAboveFloor` = float metres, floor to object bottom, 0 = unset (matches the <=0.001 rule). Sky copy + scene-camera disable already in EnsureRig. `config.json` approved. Teleport approved for after the first iPhone test.
+
 **Waiting on others:**
-- Mac 1: type/semantics of `DamageItem.heightAboveFloor` (float? what means "unset"?).
 - Abhinav: `/callouts` and `/voice` schemas in `contracts/` before headset callouts + tap-to-talk are built.
 
 **Deploy URL:** not deployed yet.
