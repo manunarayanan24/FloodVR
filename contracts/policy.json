@@ -1,0 +1,50 @@
+{
+  "version": "2026-11-07",
+  "note": "SYNTHETIC policy language written for the hackathon demo. Not real State Farm wording. Swap for official sample language if the event provides it. The peril agent cites these clause ids; the adjuster console shows them.",
+  "policies": {
+    "flood_policy": {
+      "name": "Standard Flood Insurance Policy (synthetic)",
+      "covers": "Direct physical loss by or from flood: a general and temporary condition of partial or complete inundation of normally dry land from surface water.",
+      "waterline_m": 0.9,
+      "clauses": {
+        "FL-COV-1": "Damage at or below the established interior waterline caused by inundation is covered.",
+        "FL-COV-2": "Building systems submerged by floodwater (water heater, furnace, electrical outlets below the waterline) are covered, including the cost of licensed inspection.",
+        "FL-COV-3": "Mold resulting directly from floodwater saturation is covered where remediation begins promptly.",
+        "FL-EXCL-1": "Loss caused by wind, wind-driven rain, or water entering through the roof or an opening above the waterline is NOT covered by this policy.",
+        "FL-EXCL-2": "Contents loss is covered only under a contents endorsement; otherwise refer to the homeowners policy."
+      }
+    },
+    "homeowners_policy": {
+      "name": "Homeowners HO-3 (synthetic)",
+      "covers": "Sudden and accidental direct physical loss, including wind and wind-driven rain entering through a wind-created opening.",
+      "clauses": {
+        "HO-COV-1": "Damage from wind-driven rain entering through a roof or window opening created by wind is covered.",
+        "HO-COV-2": "Personal property (contents) damaged by a covered peril is covered at actual cash value.",
+        "HO-EXCL-3a": "Loss caused by flood, surface water, or inundation is EXCLUDED under this policy and must be adjudicated under the flood policy.",
+        "HO-EXCL-3b": "Loss caused by continuous or repeated seepage over weeks or months is excluded."
+      }
+    }
+  },
+  "adjudication_rules": [
+    {
+      "id": "ADJ-1",
+      "rule": "Damage with a position height (y) at or below the 0.9 m waterline, in category flood/hazard/contents, is presumed FLOOD and routed to flood_policy under FL-COV-1 or FL-COV-2."
+    },
+    {
+      "id": "ADJ-2",
+      "rule": "Damage with a position height (y) ABOVE the 0.9 m waterline whose evidence points to roof or window entry is presumed WIND_DRIVEN_RAIN, routed to homeowners_policy under HO-COV-1, and EXCLUDED from the flood policy under FL-EXCL-1. This is the contested wind-vs-water determination."
+    },
+    {
+      "id": "ADJ-3",
+      "rule": "Structural damage requires a licensed structural engineer assessment before coverage is finalised. Always needs_human."
+    },
+    {
+      "id": "ADJ-4",
+      "rule": "Any item where the two policies conflict, or where the cause of loss cannot be determined from the manifest alone, is marked needs_human. Agents never resolve a contested peril silently."
+    },
+    {
+      "id": "ADJ-5",
+      "rule": "No agent may approve payment. Every claim draft leaves this pipeline with status draft_pending_human."
+    }
+  ]
+}

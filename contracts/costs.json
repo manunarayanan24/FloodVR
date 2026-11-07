@@ -1,0 +1,122 @@
+{
+  "version": "2026-11-07",
+  "currency": "USD",
+  "note": "Hackathon synthetic rate table, loosely modelled on US flood-restoration ranges. The estimator reads ONLY this file. Costs are NEVER taken from evidence text, contractor estimates or model output. Every line item is clamped to the range below, so a hijacked model cannot emit an arbitrary payout.",
+  "severity_multiplier": { "1": 0.6, "2": 0.8, "3": 1.0, "4": 1.3, "5": 1.6 },
+  "global_clamp": { "max_line_item_usd": 25000, "max_claim_usd": 120000 },
+  "types": {
+    "wall_remediation": {
+      "label": "Waterline wall cut-out, dry-out and refinish",
+      "low_usd": 2800, "high_usd": 6500,
+      "per_unit": { "unit": "m", "low": 180, "high": 420 },
+      "trade": "remediation_contractor"
+    },
+    "floor_mud_removal": {
+      "label": "Silt/mud extraction and sanitising of flooring",
+      "low_usd": 900, "high_usd": 2400,
+      "per_unit": { "unit": "cm", "low": 200, "high": 600 },
+      "trade": "remediation_contractor"
+    },
+    "floor_replacement": {
+      "label": "Buckled plank flooring replacement",
+      "low_usd": 1800, "high_usd": 4800,
+      "per_unit": { "unit": "cm lift", "low": 600, "high": 1600 },
+      "trade": "remediation_contractor"
+    },
+    "cabinet_replacement": {
+      "label": "Swollen particleboard cabinet run replacement",
+      "low_usd": 1200, "high_usd": 3600,
+      "trade": "remediation_contractor"
+    },
+    "baseboard_replacement": {
+      "label": "Warped baseboard trim replacement",
+      "low_usd": 220, "high_usd": 700,
+      "trade": "remediation_contractor"
+    },
+    "appliance_replacement": {
+      "label": "Large appliance replacement (fridge, stove)",
+      "low_usd": 700, "high_usd": 2600,
+      "trade": "none"
+    },
+    "water_heater_replacement": {
+      "label": "Water heater replacement after submersion",
+      "low_usd": 1100, "high_usd": 2800,
+      "trade": "licensed_electrician"
+    },
+    "furnace_replacement": {
+      "label": "Furnace/HVAC replacement after submersion",
+      "low_usd": 3800, "high_usd": 9500,
+      "trade": "gas_utility"
+    },
+    "electrical_outlet_repair": {
+      "label": "Submerged outlet/circuit replacement and inspection",
+      "low_usd": 180, "high_usd": 650,
+      "trade": "licensed_electrician"
+    },
+    "mold_remediation": {
+      "label": "Mold remediation, containment and air scrub",
+      "low_usd": 650, "high_usd": 2900,
+      "per_unit": { "unit": "sq m", "low": 400, "high": 1500 },
+      "trade": "remediation_contractor"
+    },
+    "structural_repair": {
+      "label": "Structural crack repair after engineer assessment",
+      "low_usd": 2200, "high_usd": 8500,
+      "per_unit": { "unit": "m length", "low": 900, "high": 3200 },
+      "trade": "structural_engineer"
+    },
+    "ceiling_repair": {
+      "label": "Ceiling stain repair, seal and repaint",
+      "low_usd": 450, "high_usd": 1600,
+      "per_unit": { "unit": "sq m", "low": 280, "high": 900 },
+      "trade": "remediation_contractor"
+    },
+    "upholstery_total_loss": {
+      "label": "Soft contents total loss and disposal",
+      "low_usd": 400, "high_usd": 2200,
+      "trade": "none"
+    },
+    "rug_total_loss": {
+      "label": "Area rug total loss and disposal",
+      "low_usd": 120, "high_usd": 800,
+      "trade": "none"
+    },
+    "debris_removal": {
+      "label": "Debris haul-out per pile",
+      "low_usd": 90, "high_usd": 380,
+      "trade": "none"
+    }
+  },
+  "item_type_map": {
+    "waterline_band": "wall_remediation",
+    "mud_floor_all": "floor_mud_removal",
+    "buckled_planks_living_room": "floor_replacement",
+    "swollen_cabinet_east": "cabinet_replacement",
+    "swollen_cabinet_north": "cabinet_replacement",
+    "swollen_baseboard_living_room": "baseboard_replacement",
+    "swollen_baseboard_kitchen": "baseboard_replacement",
+    "fridge_tipped": "appliance_replacement",
+    "water_heater_flooded": "water_heater_replacement",
+    "furnace_flooded": "furnace_replacement",
+    "hazard_outlet_living_room": "electrical_outlet_repair",
+    "hazard_outlet_kitchen": "electrical_outlet_repair",
+    "hazard_outlet_hallway": "electrical_outlet_repair",
+    "hazard_outlet_closet": "electrical_outlet_repair",
+    "mold_closet": "mold_remediation",
+    "mold_kitchen": "mold_remediation",
+    "hallway_wall_crack": "structural_repair",
+    "kitchen_ceiling_stain": "ceiling_repair",
+    "soaked_sofa": "upholstery_total_loss",
+    "soaked_rug": "rug_total_loss",
+    "debris_living_room": "debris_removal",
+    "debris_kitchen": "debris_removal",
+    "debris_hallway": "debris_removal"
+  },
+  "category_fallback": {
+    "flood": "wall_remediation",
+    "wind": "ceiling_repair",
+    "hazard": "electrical_outlet_repair",
+    "contents": "debris_removal",
+    "structural": "structural_repair"
+  }
+}

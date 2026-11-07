@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://floodvr.local/contracts/damage_manifest.schema.json",
+  "title": "FloodVR damage manifest",
+  "description": "Exported from Unity. Field names must match Assets/Scripts/DamageItem.cs exactly. Owned by Mac 1; this schema is the contract all three machines code against.",
+  "type": "object",
+  "required": ["items"],
+  "additionalProperties": true,
+  "properties": {
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/damageItem" }
+    }
+  },
+  "$defs": {
+    "damageItem": {
+      "type": "object",
+      "required": ["id", "label", "category", "severity", "measuredValue", "unit", "note"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "description": "Stable key. Matches the GameObject's DamageItem.id in the Unity scene."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable name. UNTRUSTED: a human can type here, so it is guarded."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["flood", "wind", "hazard", "contents", "structural"]
+        },
+        "severity": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "measuredValue": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "note": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text. UNTRUSTED: this is a prompt-injection channel and is guarded."
+        },
+        "room": {
+          "type": "string",
+          "enum": ["living_room", "kitchen", "hallway", "closet", "whole_house"],
+          "description": "Optional. Inferred from position when absent."
+        },
+        "position": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "description": "World-space metres. y is height above floor; compared against the 0.9 m waterline to separate flood from wind-driven rain."
+        }
+      }
+    }
+  }
+}

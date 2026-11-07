@@ -1,0 +1,84 @@
+# FloodVR model + policy configuration.
+# No model name is hardcoded anywhere in the Python. Change it here.
+#
+# NVIDIA ids are verified against build.nvidia.com by:  python -m agents.tools.verify_models
+# That script rewrites `verified` below and reports any 404.
+
+providers:
+  nvidia:
+    base_url: https://integrate.api.nvidia.com/v1
+    api_key_env: NVIDIA_API_KEY
+  anthropic:
+    api_key_env: ANTHROPIC_API_KEY
+
+models:
+  orchestrator:
+    provider: nvidia
+    id: nvidia/llama-3.3-nemotron-super-49b-v1.5
+    role: Plans the run and merges agent output. Needs tool calling.
+    tool_calling: true
+    verified: unverified
+  intake:
+    provider: nvidia
+    id: nvidia/nemotron-nano-9b-v2
+    role: Quarantined extraction from untrusted evidence. NO TOOLS.
+    tool_calling: false
+    verified: unverified
+  vlm:
+    provider: nvidia
+    id: nvidia/llama-3.1-nemotron-nano-vl-8b-v1
+    role: Reads text out of VR screenshots (the fridge note).
+    vision: true
+    verified: unverified
+  guard:
+    provider: nvidia
+    id: nvidia/llama-3.1-nemoguard-8b-content-safety
+    role: Second detection layer after the rules.
+    verified: unverified
+    # nvidia/nemoguard-jailbreak-detect may be download-only (NIM container),
+    # not served on the hosted API. Fallbacks are tried in order.
+    fallback_ids:
+      - nvidia/nemoguard-jailbreak-detect
+      - meta/llama-guard-4-12b
+  claude_fallback:
+    provider: anthropic
+    id: claude-opus-5-5
+    role: Stand-in brain if NVIDIA is unreachable mid-demo.
+    verified: current
+  claude_redteam:
+    provider: anthropic
+    id: claude-opus-5-5
+    role: Writes held-out attack variants for evals/gen_variants.
+    verified: current
+
+# Anthropic request defaults. budget_tokens is removed on this model family;
+# depth is controlled by effort. Prefill and forced tool_choice are rejected.
+anthropic_defaults:
+  max_tokens: 16000
+  effort: medium
+  thinking: adaptive
+
+runtime:
+  # offline = deterministic stubs, no network, no keys. evals must pass here.
+  offline: true
+  request_timeout_s: 60
+  max_retries: 2
+
+guard:
+  rules_enabled: true
+  guard_model_enabled: true
+  llm_judge_enabled: false
+  # Block at or above this rule score even if the guard model disagrees.
+  block_threshold: 0.5
+  canary_prefix: FLOODVR-CANARY
+
+policy:
+  waterline_m: 0.9
+  file: contracts/policy.json
+  costs_file: contracts/costs.json
+
+server:
+  cors_origins:
+    - https://*.vercel.app
+    - http://localhost:3000
+    - http://localhost:5173

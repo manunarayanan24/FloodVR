@@ -64,3 +64,22 @@ crashlytics-build.properties
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# --- FloodVR AI workstream (Windows / Machine 3) ---
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# SECRETS - never commit
+agents/.env
+*.env
+!agents/.env.example
+
+# agent runtime output
+agents/audit.jsonl
+evals/results.json
+evals/report.html
+evals/attacks/generated_*.json
+.cache/
