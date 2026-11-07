@@ -28,13 +28,14 @@ namespace FloodVR.EditorTools
             head.transform.SetParent(root.transform, false);
             head.transform.localPosition = new Vector3(0f, EyeHeight, 0f);
             head.AddComponent<HeadLook>();
+            head.AddComponent<GazeSelector>();
             head.AddComponent<AudioListener>();
 
             MakeEye(head.transform, "LeftEye",  -EyeSeparation * 0.5f, new Rect(0f,   0f, 0.5f, 1f), 1);
             MakeEye(head.transform, "RightEye",  EyeSeparation * 0.5f, new Rect(0.5f, 0f, 0.5f, 1f), 2);
 
             Selection.activeGameObject = root;
-            Debug.Log("[FloodVR] VR rig added. Head carries HeadLook; eyes split 0-0.5 / 0.5-1. " +
+            Debug.Log("[FloodVR] VR rig added. Head carries HeadLook + GazeSelector; eyes split 0-0.5 / 0.5-1. " +
                       "Do NOT save House.unity with the rig in it - use Tools > FloodVR > Build Web.");
             return root;
         }
@@ -54,6 +55,10 @@ namespace FloodVR.EditorTools
         {
             Camera sceneCam = Camera.main;
             bool haveSceneCam = sceneCam != null && sceneCam.transform.root != root.transform;
+
+            var headLook = root.GetComponentInChildren<HeadLook>(true);
+            if (headLook != null && headLook.GetComponent<GazeSelector>() == null)
+                headLook.gameObject.AddComponent<GazeSelector>();
 
             foreach (var eye in root.GetComponentsInChildren<Camera>(true))
             {
