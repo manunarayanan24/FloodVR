@@ -78,7 +78,6 @@
       "measuredValue": 85,
       "unit": "deg tilt",
       "note": "Refrigerator was tipped by the flood surge and now partially blocks the kitchen walkway.",
-      "heightAboveFloor": 0.0,
       "effect": { "type": "tipFurniture", "targetId": "fridge", "axis": "z", "angleDeg": 85 }
     },
     {
@@ -100,7 +99,6 @@
       "measuredValue": 100,
       "unit": "% saturated",
       "note": "Upholstered sofa is fully saturated and shows water staining; total loss, mold risk if not removed quickly.",
-      "heightAboveFloor": 0.0,
       "effect": { "type": "darkenFurniture", "targetId": "sofa", "darkenFactor": 0.55 }
     },
     {
@@ -111,7 +109,6 @@
       "measuredValue": 100,
       "unit": "% saturated",
       "note": "Area rug is saturated and stained; likely a total loss.",
-      "heightAboveFloor": 0.0,
       "effect": { "type": "darkenFurniture", "targetId": "rug", "darkenFactor": 0.5 }
     },
     {

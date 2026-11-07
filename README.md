@@ -40,6 +40,9 @@ Voice Notes agent.
 | **Mac 2** | Ayushmaan (`Ayushmaan-Dubey`) | Phone-VR layer + WebGL build/deploy | `Assets/Scripts/VR/` (incl. `Assets/Scripts/VR/Editor/`), `Assets/Plugins/WebGL/`, `Assets/WebGLTemplates/`, `Assets/Scenes/VRTest.unity`, `README-Mac2.md`, `docs/STATUS-mac2.md` |
 | **Windows** | Abhinav (`abhinav-chodisetti`) | AI agents + security | `agents/`, `evals/`, `contracts/` **except** `contracts/samples/`, `docs/STATUS-windows.md` |
 
+**Exception:** `Assets/StreamingAssets/config.json` (runtime API base URL) is Mac 2's — every
+other file in `Assets/StreamingAssets/` (the damage manifest, etc.) is Mac 1's.
+
 **Golden rule:** edit only inside your lane. Need something from another layer → add it to
 "Open requests" (section 9) and tell your human.
 
@@ -87,7 +90,7 @@ hand; never overwrite them from another machine.** Need a different shape → op
       "measuredValue": 2.0,                  // float
       "unit": "cm lift",
       "note": "Living room flooring has buckled...", // UNTRUSTED text
-      "heightAboveFloor": 0.6,               // OPTIONAL (m), mainly on "contents" items
+      "heightAboveFloor": 0.6,               // float meters, floor to the BOTTOM of the object
       "position": { "x": 3.0, "y": 0.03, "z": 5.5 }  // export-only, from the transform
     },
     {
@@ -116,6 +119,10 @@ hand; never overwrite them from another machine.** Need a different shape → op
   was never damaged. Every other effect type still mutates/decorates as before.
 - `DamageItem.cs` fields: `id, label, category (string), severity (int, 0–5), measuredValue
   (float), unit, note, heightAboveFloor (float, optional)`. The old enum/`adjusterNote` draft is dead.
+- `heightAboveFloor`: meters from the floor to the **bottom** of the object (not its center).
+  `0` means **unset**, not "at the floor" — today only three items set it: `tv_damaged` = 0.6,
+  `electronics_undamaged` = 1.45, `laptop_undamaged` = 1.6. Everything else leaves it at the
+  JSON-deserialize default of `0`; don't read that as a height claim.
 
 ### 4.2 `contracts/samples/house_geometry.json` — for the measurement tools
 `waterlineHeight` (0.9 m), `floodCutHeight` (1.5 m = waterline + 0.6 m), `rooms[]` each with
