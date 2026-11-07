@@ -32,7 +32,16 @@ namespace FloodVR
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 100f;
             cam.fieldOfView = 60f;
-            cam.clearFlags = Camera.main != null ? Camera.main.clearFlags : CameraClearFlags.Skybox;
+            if (Camera.main != null)
+            {
+                cam.clearFlags = Camera.main.clearFlags;
+                cam.backgroundColor = Camera.main.backgroundColor;
+            }
+            else
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = RenderSettings.fogColor;
+            }
 
             RenderTexture rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32);
             cam.targetTexture = rt;

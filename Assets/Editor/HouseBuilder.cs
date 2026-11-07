@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 namespace FloodVR
@@ -76,6 +77,10 @@ namespace FloodVR
         public Vec3Data cameraPos, cameraLookAt, lightRotationEuler;
         public ColorData lightColor;
         public float lightIntensity;
+        public ColorData skyColor;
+        public ColorData ambientColor;
+        public float fogStart;
+        public float fogEnd;
     }
 
     [Serializable]
@@ -92,6 +97,28 @@ namespace FloodVR
     }
 
     [Serializable]
+    public class OutdoorWaterData
+    {
+        public float topY, minX, maxX, minZ, maxZ;
+        public ColorData color;
+    }
+
+    [Serializable]
+    public class PuddleData
+    {
+        public string id;
+        public Vec3Data pos;
+        public Vec2Data size;
+        public ColorData color;
+    }
+
+    [Serializable]
+    public class Vec2Data
+    {
+        public float x, z;
+    }
+
+    [Serializable]
     public class HouseLayout
     {
         public HouseData house;
@@ -101,6 +128,8 @@ namespace FloodVR
         public FurnitureData[] furniture;
         public OutletData[] outlets;
         public SceneTextData[] sceneTexts;
+        public OutdoorWaterData outdoorWater;
+        public PuddleData[] puddles;
         public SceneData scene;
     }
 
@@ -135,6 +164,8 @@ namespace FloodVR
             BuildStandPoints(root.transform, layout);
             BuildFurniture(root.transform, layout);
             BuildOutlets(root.transform, layout);
+            BuildPuddles(root.transform, layout);
+            BuildOutdoorWater(root.transform, layout);
             SceneTextBuilder.BuildSceneTexts(layout);
             DamageBuilder.ApplyDamage(root.transform, layout);
             ConfigureCameraAndLight(layout.scene);
@@ -351,15 +382,69 @@ namespace FloodVR
             }
         }
 
+        private static void BuildPuddles(Transform root, HouseLayout layout)
+        {
+            if (layout.puddles == null) return;
+            GameObject puddlesRoot = new GameObject("Puddles");
+            puddlesRoot.transform.SetParent(root, false);
+
+            foreach (PuddleData p in layout.puddles)
+            {
+                GameObject go = CreatePrimitiveChild(PrimitiveType.Cube, p.id, puddlesRoot.transform);
+                go.transform.position = p.pos.ToVector3();
+                go.transform.localScale = new Vector3(p.size.x, 0.005f, p.size.z);
+                Material mat = GetOrCreateMaterial(p.color.ToColor(), p.id);
+                mat.SetFloat("_Glossiness", 0.6f); // cheap stand-in for reflective standing water
+                go.GetComponent<Renderer>().sharedMaterial = mat;
+            }
+        }
+
+        // Builds the outdoor water as a frame of 4 slabs AROUND the house
+        // footprint (not a single slab under it) so it never pokes up through
+        // the floor on the inside -- only visible from outside, through windows.
+        private static void BuildOutdoorWater(Transform root, HouseLayout layout)
+        {
+            OutdoorWaterData w = layout.outdoorWater;
+            if (w == null) return;
+
+            const float thickness = 0.1f;
+            GameObject waterRoot = new GameObject("OutdoorFloodWater");
+            waterRoot.transform.SetParent(root, false);
+            Material mat = GetOrCreateMaterial(w.color.ToColor(), "OutdoorFloodWater");
+            mat.SetFloat("_Glossiness", 0.5f);
+
+            float houseW = layout.house.width;
+            float houseD = layout.house.depth;
+            float y = w.topY - thickness / 2f;
+
+            AddWaterSlab(waterRoot.transform, mat, w.minX, 0f, w.minZ, w.maxZ, y, thickness, "West");
+            AddWaterSlab(waterRoot.transform, mat, houseW, w.maxX, w.minZ, w.maxZ, y, thickness, "East");
+            AddWaterSlab(waterRoot.transform, mat, 0f, houseW, w.minZ, 0f, y, thickness, "South");
+            AddWaterSlab(waterRoot.transform, mat, 0f, houseW, houseD, w.maxZ, y, thickness, "North");
+        }
+
+        private static void AddWaterSlab(Transform parent, Material mat, float x1, float x2, float z1, float z2, float y, float thickness, string name)
+        {
+            if (x2 - x1 <= 0.001f || z2 - z1 <= 0.001f) return;
+            GameObject slab = CreatePrimitiveChild(PrimitiveType.Cube, $"Water_{name}", parent);
+            slab.transform.position = new Vector3((x1 + x2) / 2f, y, (z1 + z2) / 2f);
+            slab.transform.localScale = new Vector3(x2 - x1, thickness, z2 - z1);
+            slab.GetComponent<Renderer>().sharedMaterial = mat;
+        }
+
         private static void ConfigureCameraAndLight(SceneData sceneData)
         {
             if (sceneData == null) return;
+
+            Color skyColor = sceneData.skyColor != null ? sceneData.skyColor.ToColor() : new Color(0.6f, 0.6f, 0.6f);
 
             Camera cam = Camera.main;
             if (cam != null)
             {
                 cam.transform.position = sceneData.cameraPos.ToVector3();
                 cam.transform.LookAt(sceneData.cameraLookAt.ToVector3());
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = skyColor;
             }
 
             Light light = UnityEngine.Object.FindFirstObjectByType<Light>();
@@ -371,6 +456,18 @@ namespace FloodVR
                 light.intensity = sceneData.lightIntensity;
                 light.transform.rotation = Quaternion.Euler(sceneData.lightRotationEuler.ToVector3());
             }
+
+            // Cheap grey-overcast look: solid-color sky (no skybox render cost),
+            // flat ambient instead of skybox-sampled GI, and fog to hide the
+            // open-ended exterior -- all inexpensive for WebGL on an iPhone.
+            RenderSettings.skybox = null;
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = sceneData.ambientColor != null ? sceneData.ambientColor.ToColor() : skyColor * 0.7f;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = skyColor;
+            RenderSettings.fogStartDistance = sceneData.fogStart > 0f ? sceneData.fogStart : 4f;
+            RenderSettings.fogEndDistance = sceneData.fogEnd > 0f ? sceneData.fogEnd : 32f;
         }
     }
 }
