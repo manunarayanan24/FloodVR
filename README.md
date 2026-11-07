@@ -87,8 +87,19 @@ hand; never overwrite them from another machine.** Need a different shape → op
       "measuredValue": 2.0,                  // float
       "unit": "cm lift",
       "note": "Living room flooring has buckled...", // UNTRUSTED text
-      "heightAboveFloor": 0.6,               // OPTIONAL (m), contents items — being added now
+      "heightAboveFloor": 0.6,               // OPTIONAL (m), mainly on "contents" items
       "position": { "x": 3.0, "y": 0.03, "z": 5.5 }  // export-only, from the transform
+    },
+    {
+      "id": "laptop_undamaged",
+      "label": "Laptop on high shelf",
+      "category": "contents",
+      "severity": 0,                         // 0 = present but CONFIRMED UNDAMAGED
+      "measuredValue": 0,
+      "unit": "",
+      "note": "above waterline - no flood damage",
+      "heightAboveFloor": 1.6,
+      "position": { "x": 0.45, "y": 1.6, "z": 3.5 }
     }
   ],
   "scene_text": [                            // text visible in the house. ALWAYS UNTRUSTED.
@@ -97,20 +108,26 @@ hand; never overwrite them from another machine.** Need a different shape → op
   ]
 }
 ```
-- 23 damage items today. More `contents` items are coming, some above the waterline with
-  severity 0 — the fraud-checker trap (homeowner claims them destroyed; the scene proves otherwise).
-- `DamageItem.cs` fields: `id, label, category (string), severity (int), measuredValue (float),
-  unit, note` (+ `heightAboveFloor` soon). The old enum/`adjusterNote` draft is dead.
+- 26 damage items today (23 structural/hazard/flood + 3 contents: `tv_damaged` below the
+  waterline, `laptop_undamaged` + `electronics_undamaged` above it at severity 0). Severity-0
+  items are the fraud-checker trap: homeowner claims them destroyed, the scene proves otherwise.
+- In `damage.json` (source), severity-0 contents items use a `tagOnly` effect — it tags the
+  object with a `DamageItem` but changes nothing visually in either flood state, since the item
+  was never damaged. Every other effect type still mutates/decorates as before.
+- `DamageItem.cs` fields: `id, label, category (string), severity (int, 0–5), measuredValue
+  (float), unit, note, heightAboveFloor (float, optional)`. The old enum/`adjusterNote` draft is dead.
 
 ### 4.2 `contracts/samples/house_geometry.json` — for the measurement tools
-`waterlineHeight` (0.9 m), `floodCutHeight` (1.5 m = waterline + 0.6 m), `rooms[]` with floor
-size/area, ceiling height, walls (length, height, openings), wall area below the waterline and
-flood-cut drywall area. Metric + ft/ft².
+`waterlineHeight` (0.9 m), `floodCutHeight` (1.5 m = waterline + 0.6 m), `rooms[]` each with
+`floorPolygon`, `floorArea`, `ceilingHeight`, `walls[]` (`edge`, `wallId`, `start`/`end` points,
+`length`, `height`, `openings[]` with `width`/`height`/`sill`), `wallAreaBelowWaterline`, and
+`floodCutDrywallArea` (openings subtracted from both). Every length/area is `{m, ft}` / `{m2, ft2}`.
 
 ### 4.3 `contracts/samples/screens/` — for the Vision Inspector
-9 PNGs, 1280×720: `StandPoint_{Hallway,Living,Kitchen}_{0,1,2}.png`, plus `screens.json`
-(being added): per image → standpoint, position, yaw/pitch, FOV, and which damage `id`s and
-`scene_text` ids are visible. That is the **answer key** to score vision ("found 21/23").
+9 PNGs, 1280×720: `StandPoint_{Hallway,Living,Kitchen}_{0,1,2}.png`, plus `screens.json`: per
+image → `filename`, `standpoint`, `position {x,y,z}`, `yaw`, `pitch`, `fov`, `visibleDamageIds[]`,
+`visibleSceneTextIds[]` (in-frustum via viewport test + unoccluded via raycast, excluding the
+item's own collider). That is the **answer key** to score vision ("found 24/26").
 
 ### 4.4 Agent API (Windows → VR app and console)
 FastAPI on Windows, exposed with `cloudflared tunnel --url http://localhost:8000` (free HTTPS;
@@ -174,9 +191,10 @@ tools → Consistency Checker → Voice Notes → `/callouts` → adjuster conso
 
 ## 8. Current status (each machine edits only its own line)
 
-- **Mac 1:** house + 23 damage items, stand points, pre/post-flood toggle, fridge injection
-  note (`scene_text`), 9 screenshots, look polish, geometry export — pushed. Doing: `screens.json`
-  answer key + contents items with `heightAboveFloor`.
+- **Mac 1:** house + 26 damage items, stand points, pre/post-flood toggle, fridge injection
+  note (`scene_text`), 9 screenshots + `screens.json` answer key, look polish, geometry export,
+  contents fraud-checker items (`heightAboveFloor`, severity-0 undamaged) — pushed. Keeping
+  section 4 current in-commit from here on; otherwise idle, waiting on requests.
 - **Mac 2:** VR rig, head tracking, CardboardVR template, Build Web menu, this README's first
   draft — pushed. Next: harden BuildWeb (add rig if missing), first iPhone test + Vercel deploy,
   gaze selection + waterline readout, then headset callouts + tap-to-talk.
@@ -189,4 +207,3 @@ tools → Consistency Checker → Voice Notes → `/callouts` → adjuster conso
 - Mac 2 → harden `BuildWeb.cs` to add the rig if missing; post the Vercel URL in `docs/STATUS-mac2.md`.
 - Windows ↔ Mac 2 → Windows proposes `/callouts` and `/voice` JSON schemas in `contracts/`
   first; Mac 2 consumes them. Don't build either side before the schema is pushed.
-- Mac 1 → finish `screens.json` + contents items; keep this README's data contract current.
