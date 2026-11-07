@@ -1,0 +1,99 @@
+{
+  "house": {
+    "width": 10.0,
+    "depth": 8.0,
+    "wallHeight": 2.7,
+    "wallThickness": 0.1,
+    "floorColor": { "r": 0.75, "g": 0.72, "b": 0.65 },
+    "ceilingColor": { "r": 0.95, "g": 0.95, "b": 0.92 },
+    "wallColor": { "r": 0.88, "g": 0.85, "b": 0.78 }
+  },
+  "rooms": [
+    { "id": "living_room", "label": "Living Room", "minX": 0, "minZ": 3, "maxX": 6, "maxZ": 8 },
+    { "id": "kitchen", "label": "Kitchen", "minX": 6, "minZ": 3, "maxX": 10, "maxZ": 8 },
+    { "id": "hallway", "label": "Hallway", "minX": 1.5, "minZ": 0, "maxX": 10, "maxZ": 3 },
+    { "id": "hallway_closet", "label": "Hallway Closet", "minX": 0, "minZ": 0, "maxX": 1.5, "maxZ": 3 }
+  ],
+  "walls": [
+    {
+      "id": "ext_south", "x1": 0, "z1": 0, "x2": 10, "z2": 0,
+      "openings": [
+        { "id": "front_door", "type": "door", "start": 4.5, "end": 5.5, "bottom": 0.0, "top": 2.1 }
+      ]
+    },
+    {
+      "id": "ext_north", "x1": 0, "z1": 8, "x2": 10, "z2": 8,
+      "openings": [
+        { "id": "kitchen_window_1", "type": "window", "start": 7.0, "end": 8.5, "bottom": 1.0, "top": 2.1 }
+      ]
+    },
+    {
+      "id": "ext_west", "x1": 0, "z1": 0, "x2": 0, "z2": 8,
+      "openings": [
+        { "id": "living_room_window_1", "type": "window", "start": 4.0, "end": 5.2, "bottom": 1.0, "top": 2.1 },
+        { "id": "living_room_window_2", "type": "window", "start": 6.0, "end": 7.2, "bottom": 1.0, "top": 2.1 }
+      ]
+    },
+    {
+      "id": "ext_east", "x1": 10, "z1": 0, "x2": 10, "z2": 8,
+      "openings": [
+        { "id": "kitchen_window_2", "type": "window", "start": 4.5, "end": 6.0, "bottom": 1.0, "top": 2.1 }
+      ]
+    },
+    {
+      "id": "div_hallway_main", "x1": 0, "z1": 3, "x2": 10, "z2": 3,
+      "openings": [
+        { "id": "hallway_archway", "type": "archway", "start": 3.5, "end": 6.5, "bottom": 0.0, "top": 2.3 }
+      ]
+    },
+    {
+      "id": "div_living_kitchen", "x1": 6, "z1": 3, "x2": 6, "z2": 8,
+      "openings": [
+        { "id": "living_kitchen_passthrough", "type": "archway", "start": 1.5, "end": 3.5, "bottom": 0.0, "top": 2.3 }
+      ]
+    },
+    {
+      "id": "closet_wall", "x1": 1.5, "z1": 0, "x2": 1.5, "z2": 3,
+      "openings": [
+        { "id": "closet_door", "type": "door", "start": 1.0, "end": 1.9, "bottom": 0.0, "top": 2.1 }
+      ]
+    }
+  ],
+  "furniture": [
+    { "id": "sofa", "room": "living_room", "shape": "box", "pos": { "x": 1.0, "y": 0.4, "z": 5.5 }, "size": { "x": 0.9, "y": 0.8, "z": 2.2 }, "rotationY": 0, "color": { "r": 0.45, "g": 0.35, "b": 0.25 } },
+    { "id": "coffee_table", "room": "living_room", "shape": "box", "pos": { "x": 2.3, "y": 0.2, "z": 5.5 }, "size": { "x": 1.2, "y": 0.4, "z": 0.6 }, "rotationY": 0, "color": { "r": 0.55, "g": 0.4, "b": 0.25 } },
+    { "id": "tv_stand", "room": "living_room", "shape": "box", "pos": { "x": 5.7, "y": 0.25, "z": 5.5 }, "size": { "x": 0.5, "y": 0.5, "z": 1.8 }, "rotationY": 0, "color": { "r": 0.15, "g": 0.15, "b": 0.15 } },
+    { "id": "tv", "room": "living_room", "shape": "box", "pos": { "x": 5.75, "y": 1.0, "z": 5.5 }, "size": { "x": 0.08, "y": 0.8, "z": 1.4 }, "rotationY": 0, "color": { "r": 0.05, "g": 0.05, "b": 0.05 } },
+    { "id": "rug", "room": "living_room", "shape": "box", "pos": { "x": 2.0, "y": 0.02, "z": 5.5 }, "size": { "x": 3.0, "y": 0.02, "z": 2.6 }, "rotationY": 0, "color": { "r": 0.6, "g": 0.2, "b": 0.2 } },
+    { "id": "bookshelf", "room": "living_room", "shape": "box", "pos": { "x": 0.3, "y": 0.9, "z": 3.6 }, "size": { "x": 0.4, "y": 1.8, "z": 1.0 }, "rotationY": 0, "color": { "r": 0.35, "g": 0.25, "b": 0.15 } },
+
+    { "id": "fridge", "room": "kitchen", "shape": "box", "pos": { "x": 6.5, "y": 0.9, "z": 4.0 }, "size": { "x": 0.8, "y": 1.8, "z": 0.7 }, "rotationY": 0, "color": { "r": 0.75, "g": 0.75, "b": 0.75 } },
+    { "id": "counter_east", "room": "kitchen", "shape": "box", "pos": { "x": 9.6, "y": 0.45, "z": 5.5 }, "size": { "x": 0.7, "y": 0.9, "z": 3.0 }, "rotationY": 0, "color": { "r": 0.8, "g": 0.8, "b": 0.78 } },
+    { "id": "cabinets_upper_east", "room": "kitchen", "shape": "box", "pos": { "x": 9.6, "y": 2.1, "z": 5.5 }, "size": { "x": 0.4, "y": 0.7, "z": 3.0 }, "rotationY": 0, "color": { "r": 0.9, "g": 0.9, "b": 0.85 } },
+    { "id": "counter_north", "room": "kitchen", "shape": "box", "pos": { "x": 8.0, "y": 0.45, "z": 7.6 }, "size": { "x": 3.4, "y": 0.9, "z": 0.7 }, "rotationY": 0, "color": { "r": 0.8, "g": 0.8, "b": 0.78 } },
+    { "id": "cabinets_upper_north", "room": "kitchen", "shape": "box", "pos": { "x": 8.0, "y": 2.1, "z": 7.6 }, "size": { "x": 3.4, "y": 0.7, "z": 0.7 }, "rotationY": 0, "color": { "r": 0.9, "g": 0.9, "b": 0.85 } },
+    { "id": "sink", "room": "kitchen", "shape": "box", "pos": { "x": 9.3, "y": 0.95, "z": 6.0 }, "size": { "x": 0.5, "y": 0.1, "z": 0.5 }, "rotationY": 0, "color": { "r": 0.85, "g": 0.85, "b": 0.9 } },
+    { "id": "stove", "room": "kitchen", "shape": "box", "pos": { "x": 7.3, "y": 0.47, "z": 7.6 }, "size": { "x": 0.7, "y": 0.95, "z": 0.65 }, "rotationY": 0, "color": { "r": 0.1, "g": 0.1, "b": 0.1 } },
+    { "id": "kitchen_table", "room": "kitchen", "shape": "box", "pos": { "x": 7.5, "y": 0.4, "z": 4.7 }, "size": { "x": 1.0, "y": 0.75, "z": 1.0 }, "rotationY": 0, "color": { "r": 0.5, "g": 0.35, "b": 0.2 } },
+    { "id": "kitchen_chair_1", "room": "kitchen", "shape": "box", "pos": { "x": 7.0, "y": 0.45, "z": 4.7 }, "size": { "x": 0.45, "y": 0.9, "z": 0.45 }, "rotationY": 0, "color": { "r": 0.4, "g": 0.3, "b": 0.2 } },
+    { "id": "kitchen_chair_2", "room": "kitchen", "shape": "box", "pos": { "x": 8.0, "y": 0.45, "z": 4.7 }, "size": { "x": 0.45, "y": 0.9, "z": 0.45 }, "rotationY": 180, "color": { "r": 0.4, "g": 0.3, "b": 0.2 } },
+
+    { "id": "water_heater", "room": "hallway_closet", "shape": "cylinder", "pos": { "x": 0.5, "y": 0.9, "z": 1.0 }, "size": { "x": 0.5, "y": 1.8, "z": 0.5 }, "rotationY": 0, "color": { "r": 0.6, "g": 0.6, "b": 0.65 } },
+    { "id": "furnace", "room": "hallway_closet", "shape": "box", "pos": { "x": 1.0, "y": 0.6, "z": 2.0 }, "size": { "x": 0.6, "y": 1.2, "z": 0.6 }, "rotationY": 0, "color": { "r": 0.5, "g": 0.5, "b": 0.55 } }
+  ],
+  "outlets": [
+    { "id": "lr_outlet_1", "room": "living_room", "pos": { "x": 0.08, "y": 0.3, "z": 4.5 }, "rotationY": 90, "heightM": 0.3 },
+    { "id": "lr_outlet_2", "room": "living_room", "pos": { "x": 0.08, "y": 1.1, "z": 6.5 }, "rotationY": 90, "heightM": 1.1 },
+    { "id": "kitchen_outlet_1", "room": "kitchen", "pos": { "x": 9.92, "y": 0.3, "z": 5.0 }, "rotationY": 270, "heightM": 0.3 },
+    { "id": "kitchen_outlet_2", "room": "kitchen", "pos": { "x": 8.0, "y": 1.1, "z": 7.92 }, "rotationY": 180, "heightM": 1.1 },
+    { "id": "hallway_outlet_1", "room": "hallway", "pos": { "x": 9.92, "y": 0.3, "z": 1.5 }, "rotationY": 270, "heightM": 0.3 },
+    { "id": "closet_outlet_1", "room": "hallway_closet", "pos": { "x": 0.08, "y": 0.3, "z": 2.0 }, "rotationY": 90, "heightM": 0.3 }
+  ],
+  "scene": {
+    "cameraPos": { "x": 5.0, "y": 1.6, "z": 1.0 },
+    "cameraLookAt": { "x": 3.5, "y": 1.6, "z": 6.0 },
+    "lightRotationEuler": { "x": 50, "y": -30, "z": 0 },
+    "lightColor": { "r": 1.0, "g": 0.95, "b": 0.9 },
+    "lightIntensity": 1.1
+  }
+}
