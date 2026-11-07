@@ -6,6 +6,6 @@
 
 **Done:** ...plus contents fraud-checker test cases: laptop (1.6m) + router (1.45m) on the bookshelf, tagged severity 0 "above waterline - no flood damage" via a new tagOnly effect type (ground-truth tag, zero visual change in either flood state); TV on its stand (base 0.6m, below waterline) tagged damaged. DamageItem gets a new heightAboveFloor field, threaded through the manifest. 26 items total, re-verified via rebuild + Capture Screens.
 
-**Doing:** Wrapping up this round -- all 3 tasks complete.
+**Doing:** Idle, all 3 tasks from this round complete.
 
 **Blocked:** Nothing.
