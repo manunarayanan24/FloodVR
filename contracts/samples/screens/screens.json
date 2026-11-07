@@ -1,0 +1,157 @@
+{
+    "screens": [
+        {
+            "filename": "StandPoint_Hallway_0.png",
+            "standpoint": "StandPoint_Hallway",
+            "position": {
+                "x": 3.5,
+                "y": 1.600000023841858,
+                "z": 1.5
+            },
+            "yaw": 236.0548095703125,
+            "pitch": 11.662428855895996,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "water_heater_flooded"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Hallway_1.png",
+            "standpoint": "StandPoint_Hallway",
+            "position": {
+                "x": 3.5,
+                "y": 1.600000023841858,
+                "z": 1.5
+            },
+            "yaw": 266.0548095703125,
+            "pitch": 11.662429809570313,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "water_heater_flooded"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Hallway_2.png",
+            "standpoint": "StandPoint_Hallway",
+            "position": {
+                "x": 3.5,
+                "y": 1.600000023841858,
+                "z": 1.5
+            },
+            "yaw": 296.0548095703125,
+            "pitch": 11.662430763244629,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "water_heater_flooded"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Living_0.png",
+            "standpoint": "StandPoint_Living",
+            "position": {
+                "x": 4.5,
+                "y": 1.600000023841858,
+                "z": 6.5
+            },
+            "yaw": 224.0546112060547,
+            "pitch": 12.395227432250977,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "buckled_planks_living_room",
+                "debris_living_room",
+                "hallway_wall_crack",
+                "soaked_sofa",
+                "swollen_baseboard_living_room"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Living_1.png",
+            "standpoint": "StandPoint_Living",
+            "position": {
+                "x": 4.5,
+                "y": 1.600000023841858,
+                "z": 6.5
+            },
+            "yaw": 254.05459594726563,
+            "pitch": 12.395227432250977,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "debris_living_room",
+                "hallway_wall_crack",
+                "soaked_sofa",
+                "swollen_baseboard_living_room"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Living_2.png",
+            "standpoint": "StandPoint_Living",
+            "position": {
+                "x": 4.5,
+                "y": 1.600000023841858,
+                "z": 6.5
+            },
+            "yaw": 284.0545959472656,
+            "pitch": 12.395227432250977,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "soaked_sofa"
+            ],
+            "visibleSceneTextIds": []
+        },
+        {
+            "filename": "StandPoint_Kitchen_0.png",
+            "standpoint": "StandPoint_Kitchen",
+            "position": {
+                "x": 7.300000190734863,
+                "y": 1.600000023841858,
+                "z": 6.300000190734863
+            },
+            "yaw": 166.92752075195313,
+            "pitch": 16.233531951904298,
+            "fov": 60.0,
+            "visibleDamageIds": [],
+            "visibleSceneTextIds": [
+                "fridge_sticky_note"
+            ]
+        },
+        {
+            "filename": "StandPoint_Kitchen_1.png",
+            "standpoint": "StandPoint_Kitchen",
+            "position": {
+                "x": 7.300000190734863,
+                "y": 1.600000023841858,
+                "z": 6.300000190734863
+            },
+            "yaw": 196.92752075195313,
+            "pitch": 16.233531951904298,
+            "fov": 60.0,
+            "visibleDamageIds": [],
+            "visibleSceneTextIds": [
+                "fridge_sticky_note"
+            ]
+        },
+        {
+            "filename": "StandPoint_Kitchen_2.png",
+            "standpoint": "StandPoint_Kitchen",
+            "position": {
+                "x": 7.300000190734863,
+                "y": 1.600000023841858,
+                "z": 6.300000190734863
+            },
+            "yaw": 226.92752075195313,
+            "pitch": 16.233535766601564,
+            "fov": 60.0,
+            "visibleDamageIds": [
+                "hallway_wall_crack"
+            ],
+            "visibleSceneTextIds": [
+                "fridge_sticky_note"
+            ]
+        }
+    ]
+}
