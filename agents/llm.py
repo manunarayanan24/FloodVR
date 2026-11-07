@@ -231,18 +231,28 @@ def claude_complete(
     client = _anthropic_client()
     started = time.perf_counter()
 
-    with client.messages.stream(
+    # Server-side fallbacks: if a safety classifier declines, the request is
+    # routed by refusal category instead of failing outright. Authorised
+    # red-teaming sits close enough to the line that this matters in practice.
+    with client.beta.messages.stream(
         model=mid,
         max_tokens=max_tokens or int(defaults["max_tokens"]),
         system=system,
         messages=[{"role": "user", "content": user}],
         output_config={"effort": defaults.get("effort", "medium")},
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
     ) as stream:
         message = stream.get_final_message()
 
     ms = (time.perf_counter() - started) * 1000
     if getattr(message, "stop_reason", None) == "refusal":
-        raise LLMUnavailable("Claude declined this request (stop_reason=refusal)")
+        details = getattr(message, "stop_details", None)
+        category = getattr(details, "category", None) or "unspecified"
+        explanation = (getattr(details, "explanation", None) or "")[:200]
+        raise LLMUnavailable(
+            f"Claude declined this request (refusal category: {category}). {explanation}"
+        )
 
     text = "".join(b.text for b in message.content if getattr(b, "type", "") == "text")
     return Completion(text=text, model=mid, ms=ms, provider="anthropic")
