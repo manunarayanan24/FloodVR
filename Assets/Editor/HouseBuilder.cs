@@ -79,11 +79,19 @@ namespace FloodVR
     }
 
     [Serializable]
+    public class StandPointData
+    {
+        public string id;
+        public Vec3Data pos, lookAt;
+    }
+
+    [Serializable]
     public class HouseLayout
     {
         public HouseData house;
         public RoomData[] rooms;
         public WallData[] walls;
+        public StandPointData[] standPoints;
         public FurnitureData[] furniture;
         public OutletData[] outlets;
         public SceneData scene;
@@ -117,6 +125,7 @@ namespace FloodVR
             BuildFloor(root.transform, layout.house);
             BuildCeiling(root.transform, layout.house);
             BuildWalls(root.transform, layout);
+            BuildStandPoints(root.transform, layout);
             BuildFurniture(root.transform, layout);
             BuildOutlets(root.transform, layout);
             DamageBuilder.ApplyDamage(root.transform, layout);
@@ -278,6 +287,21 @@ namespace FloodVR
             seg.transform.rotation = Quaternion.Euler(0f, angle, 0f);
             seg.transform.localScale = new Vector3(thickness, top - bottom, length);
             seg.GetComponent<Renderer>().sharedMaterial = mat;
+        }
+
+        private static void BuildStandPoints(Transform root, HouseLayout layout)
+        {
+            if (layout.standPoints == null) return;
+            GameObject standRoot = new GameObject("StandPoints");
+            standRoot.transform.SetParent(root, false);
+
+            foreach (StandPointData sp in layout.standPoints)
+            {
+                GameObject go = new GameObject(sp.id);
+                go.transform.SetParent(standRoot.transform, false);
+                go.transform.position = sp.pos.ToVector3();
+                go.transform.LookAt(sp.lookAt.ToVector3());
+            }
         }
 
         private static void BuildFurniture(Transform root, HouseLayout layout)

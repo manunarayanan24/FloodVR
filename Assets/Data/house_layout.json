@@ -59,6 +59,11 @@
       ]
     }
   ],
+  "standPoints": [
+    { "id": "StandPoint_Hallway", "pos": { "x": 3.5, "y": 1.6, "z": 1.5 }, "lookAt": { "x": 0.6, "y": 1.0, "z": 1.3 } },
+    { "id": "StandPoint_Living", "pos": { "x": 4.5, "y": 1.6, "z": 6.5 }, "lookAt": { "x": 1.0, "y": 0.8, "z": 5.5 } },
+    { "id": "StandPoint_Kitchen", "pos": { "x": 7.3, "y": 1.6, "z": 6.3 }, "lookAt": { "x": 6.6, "y": 0.9, "z": 4.0 } }
+  ],
   "furniture": [
     { "id": "sofa", "room": "living_room", "shape": "box", "pos": { "x": 1.0, "y": 0.4, "z": 5.5 }, "size": { "x": 0.9, "y": 0.8, "z": 2.2 }, "rotationY": 0, "color": { "r": 0.45, "g": 0.35, "b": 0.25 } },
     { "id": "coffee_table", "room": "living_room", "shape": "box", "pos": { "x": 2.3, "y": 0.2, "z": 5.5 }, "size": { "x": 1.2, "y": 0.4, "z": 0.6 }, "rotationY": 0, "color": { "r": 0.55, "g": 0.4, "b": 0.25 } },
