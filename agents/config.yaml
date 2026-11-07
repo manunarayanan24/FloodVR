@@ -14,31 +14,43 @@ providers:
 models:
   orchestrator:
     provider: nvidia
-    id: nvidia/llama-3.3-nemotron-super-49b-v1.5
+    # nemotron-3-super-120b-a12b is LISTED but 404s on chat completions.
+    id: nvidia/nemotron-3.5-super-vl-120b-a12b
     role: Plans the run and merges agent output. Needs tool calling.
     tool_calling: true
-    verified: unverified
+    verified: 2026-11-07
+    fallback_ids:
+      - nvidia/llama-3.1-nemotron-ultra-253b-v1
+      - nvidia/llama-3.1-nemotron-70b-instruct
   intake:
     provider: nvidia
-    id: nvidia/nemotron-nano-9b-v2
+    # nemotron-nano-3-30b-a3b is LISTED but 404s on chat completions.
+    id: nvidia/nemotron-3.5-lightning-30b-a3b
     role: Quarantined extraction from untrusted evidence. NO TOOLS.
     tool_calling: false
-    verified: unverified
+    verified: 2026-11-07
+    fallback_ids:
+      - nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+      - nvidia/llama-3.1-nemotron-70b-instruct
   vlm:
     provider: nvidia
-    id: nvidia/llama-3.1-nemotron-nano-vl-8b-v1
-    role: Reads text out of VR screenshots (the fridge note).
+    id: nvidia/nemotron-3.5-super-vl-120b-a12b
+    role: Reads text and damage out of VR screenshots (the fridge note).
     vision: true
-    verified: unverified
+    verified: 2026-11-07
+    fallback_ids:
+      - nvidia/cosmos-reason2-8b
+      - meta/llama-3.2-90b-vision-instruct
   guard:
     provider: nvidia
-    id: nvidia/llama-3.1-nemoguard-8b-content-safety
+    id: nvidia/nemotron-3.5-content-safety
     role: Second detection layer after the rules.
-    verified: unverified
-    # nvidia/nemoguard-jailbreak-detect may be download-only (NIM container),
-    # not served on the hosted API. Fallbacks are tried in order.
+    verified: 2026-11-07
+    # nvidia/nemoguard-jailbreak-detect is NOT served on the hosted API (404) —
+    # it ships as a downloadable NIM container. Fallbacks are tried in order.
     fallback_ids:
-      - nvidia/nemoguard-jailbreak-detect
+      - nvidia/llama-3.1-nemotron-safety-guard-8b-v3
+      - nvidia/llama-3.1-nemoguard-8b-content-safety
       - meta/llama-guard-4-12b
   claude_fallback:
     provider: anthropic
@@ -66,7 +78,11 @@ runtime:
 
 guard:
   rules_enabled: true
-  guard_model_enabled: true
+  # OFF by default. /assess guards ~46 text fields per run, so a second model
+  # layer costs 46 extra calls per claim. Turn on only once the bake-off shows a
+  # candidate that actually detects injection — NVIDIA's content-safety model
+  # scored our live fridge-note attack as "safe".
+  guard_model_enabled: false
   llm_judge_enabled: false
   # Block at or above this rule score even if the guard model disagrees.
   block_threshold: 0.5

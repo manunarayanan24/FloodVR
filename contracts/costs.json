@@ -2,7 +2,8 @@
   "version": "2026-11-07",
   "currency": "USD",
   "note": "Hackathon synthetic rate table, loosely modelled on US flood-restoration ranges. The estimator reads ONLY this file. Costs are NEVER taken from evidence text, contractor estimates or model output. Every line item is clamped to the range below, so a hijacked model cannot emit an arbitrary payout.",
-  "severity_multiplier": { "1": 0.6, "2": 0.8, "3": 1.0, "4": 1.3, "5": 1.6 },
+  "severity_multiplier": { "0": 0.0, "1": 0.6, "2": 0.8, "3": 1.0, "4": 1.3, "5": 1.6 },
+  "severity_0_note": "Severity 0 means the item is present but undamaged. It carries no cost and is not a claimable line item; it is evidence for the consistency/fraud checker when a claimant says otherwise.",
   "global_clamp": { "max_line_item_usd": 25000, "max_claim_usd": 120000 },
   "types": {
     "wall_remediation": {

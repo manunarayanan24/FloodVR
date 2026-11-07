@@ -48,6 +48,7 @@ class Channel(str, Enum):
     homeowner_statement = "homeowner_statement"
     receipt = "receipt"
     contractor_estimate = "contractor_estimate"
+    scene_text = "scene_text"
     scene_ocr = "scene_ocr"
     vlm_output = "vlm_output"
     filename_metadata = "filename_metadata"
@@ -69,21 +70,44 @@ class DamageItem(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     label: str = Field(min_length=1, max_length=200)
     category: Category
-    severity: int = Field(ge=1, le=5)
+    # 0 = present but undamaged. Mac 1 adds severity-0 contents items as the
+    # fraud-checker trap: the homeowner claims them destroyed, the scene says no.
+    severity: int = Field(ge=0, le=5)
     measuredValue: float = Field(ge=0)
     unit: str = Field(min_length=1, max_length=40)
     note: str = Field(max_length=2000)
+    heightAboveFloor: float | None = Field(default=None, ge=0)
     room: str | None = None
     position: Position | None = None
 
     @property
     def height_m(self) -> float:
+        """Height used for the wind-vs-water test.
+
+        `heightAboveFloor` is authoritative when Mac 1 supplies it; otherwise
+        fall back to the transform's y, which is the object's origin.
+        """
+        if self.heightAboveFloor is not None:
+            return self.heightAboveFloor
         return self.position.y if self.position else 0.0
+
+    @property
+    def is_undamaged(self) -> bool:
+        return self.severity == 0
+
+
+class SceneText(BaseModel):
+    """Text physically visible inside the house. ALWAYS untrusted."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    text: str = Field(max_length=4000)
 
 
 class DamageManifest(BaseModel):
     model_config = ConfigDict(extra="ignore")
     items: list[DamageItem]
+    scene_text: list[SceneText] = Field(default_factory=list)
     waterline_m: float = 0.9
 
 
@@ -130,7 +154,7 @@ class SecurityFinding(BaseModel):
     snippet: str = Field(max_length=400)
     span: tuple[int, int] | None = None
     rule: str
-    layer: Literal["rules", "guard_model", "llm_judge", "canary", "bounds"]
+    layer: Literal["rules", "guard_model", "llm_judge", "canary", "bounds", "consistency"]
     severity: Literal["low", "medium", "high", "critical"]
     action_taken: Literal["blocked", "stripped", "quarantined", "flagged_only"] = "blocked"
 

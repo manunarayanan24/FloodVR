@@ -1,9 +1,11 @@
-"""Generate contracts/samples/house_manifest.json from Mac 1's Unity export.
+"""Build a LOCAL fallback manifest fixture from the Unity export.
 
-Read-only on Assets/. Refuses to overwrite an existing sample unless --force is
-passed, because Mac 1 owns that file and may push their own version.
+`contracts/samples/` is Mac 1's lane — this script never writes there. It writes
+`contracts/fixtures/house_manifest.windows.json`, used only when Mac 1's sample
+is missing (e.g. before the first pull of the day). When their file exists, the
+pipeline reads theirs and this fixture is ignored.
 
-    python -m agents.tools.make_sample_manifest [--force]
+    python -m agents.tools.make_sample_manifest
 """
 
 from __future__ import annotations
@@ -14,7 +16,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "Assets" / "StreamingAssets" / "damage_manifest.json"
-TARGET = REPO / "contracts" / "samples" / "house_manifest.json"
+# NOT contracts/samples/ — that path is Mac 1's lane.
+TARGET = REPO / "contracts" / "fixtures" / "house_manifest.windows.json"
 
 WATERLINE_M = 0.9
 
@@ -42,11 +45,6 @@ def main() -> int:
         print("Pull Mac 1's latest commit first.")
         return 1
 
-    if TARGET.exists() and not args.force:
-        print(f"SKIP: {TARGET.relative_to(REPO)} already exists (Mac 1 owns it).")
-        print("Pass --force only if you are sure you should overwrite it.")
-        return 0
-
     data = json.loads(SOURCE.read_text(encoding="utf-8"))
     items = []
     for raw in data["items"]:
@@ -59,6 +57,8 @@ def main() -> int:
             "unit": raw["unit"],
             "note": raw["note"],
         }
+        if "heightAboveFloor" in raw:
+            item["heightAboveFloor"] = round(float(raw["heightAboveFloor"]), 3)
         if "position" in raw:
             item["position"] = {k: round(float(v), 3) for k, v in raw["position"].items()}
         item["room"] = infer_room(raw)
@@ -68,8 +68,11 @@ def main() -> int:
     payload = {
         "schema": "contracts/damage_manifest.schema.json",
         "source": "Assets/StreamingAssets/damage_manifest.json (Unity export, Mac 1)",
+        "note": "Windows-local fallback fixture. Mac 1's contracts/samples/ is "
+                "authoritative and takes precedence wherever it exists.",
         "waterline_m": WATERLINE_M,
         "items": items,
+        "scene_text": data.get("scene_text", []),
     }
 
     TARGET.parent.mkdir(parents=True, exist_ok=True)

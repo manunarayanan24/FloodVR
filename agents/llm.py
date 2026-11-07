@@ -62,6 +62,27 @@ def _anthropic_client():
 # NVIDIA
 # --------------------------------------------------------------------------
 
+# The hosted endpoint rate-limits bursts with HTTP 403. Keep a floor between
+# calls and back off when it happens, so an eval sweep does not look like a
+# dead model.
+_MIN_INTERVAL_S = 0.45
+_last_call_at = 0.0
+
+# Nemotron 3.5 models are reasoning-tuned: they spend tokens on
+# `reasoning_content` BEFORE writing `content`. A small max_tokens returns an
+# empty answer with finish_reason "stop", which looks exactly like a broken
+# model. Never send less than this.
+_MIN_MAX_TOKENS = 512
+
+
+def _throttle() -> None:
+    global _last_call_at
+    wait = _MIN_INTERVAL_S - (time.monotonic() - _last_call_at)
+    if wait > 0:
+        time.sleep(wait)
+    _last_call_at = time.monotonic()
+
+
 def nvidia_chat(
     role: str,
     messages: list[dict[str, Any]],
@@ -78,7 +99,7 @@ def nvidia_chat(
     kwargs: dict[str, Any] = {
         "model": mid,
         "messages": messages,
-        "max_tokens": max_tokens,
+        "max_tokens": max(max_tokens, _MIN_MAX_TOKENS),
         "temperature": temperature,
     }
     if tools:
@@ -86,10 +107,27 @@ def nvidia_chat(
         kwargs["tool_choice"] = "auto"
 
     started = time.perf_counter()
-    resp = client.chat.completions.create(**kwargs)
+    attempts = int(settings.config()["runtime"]["max_retries"]) + 1
+    resp = None
+    for attempt in range(attempts):
+        _throttle()
+        try:
+            resp = client.chat.completions.create(**kwargs)
+            break
+        except Exception as exc:  # noqa: BLE001
+            transient = any(code in str(exc) for code in ("403", "429", "503", "timed out"))
+            if not transient or attempt == attempts - 1:
+                raise
+            time.sleep(1.5 * (attempt + 1))
+    assert resp is not None
+
     ms = (time.perf_counter() - started) * 1000
     choice = resp.choices[0]
     text = choice.message.content or ""
+    if not text.strip():
+        # Reasoning model that spent its whole budget thinking; fall back to the
+        # reasoning text rather than reporting an empty reply.
+        text = (getattr(choice.message, "reasoning_content", "") or "").strip()
     if getattr(choice.message, "tool_calls", None):
         text = text or json.dumps(
             [

@@ -53,6 +53,17 @@ def assess(req: AssessRequest) -> ClaimDraft:
                 # real, only its free text is hostile.
                 setattr(item, field, "[blocked: injected instruction removed]")
 
+    # scene_text is text painted inside the house (the fridge sticky note). It is
+    # the demo's primary injection channel and is never trusted.
+    blocked_scene_text: set[str] = set()
+    for st in req.manifest.scene_text:
+        blocked, f = _guard_text(
+            st.text, f"scene_text:{st.id}", Channel.scene_text, req.guard_enabled
+        )
+        findings.extend(f)
+        if blocked:
+            blocked_scene_text.add(st.id)
+
     for doc in req.evidence:
         blocked, f = _guard_text(doc.text, f"evidence:{doc.doc_id}", doc.channel,
                                  req.guard_enabled)
@@ -71,11 +82,13 @@ def assess(req: AssessRequest) -> ClaimDraft:
     trace.append(TraceStep(
         agent="guard", model="rules+guard_model" if req.guard_enabled else "disabled",
         ms=(time.perf_counter() - t0) * 1000,
-        note=f"{len(findings)} finding(s); {len(quarantined_docs)} document(s) quarantined",
+        note=f"{len(findings)} finding(s); {len(quarantined_docs)} document(s) and "
+             f"{len(blocked_scene_text)} scene-text item(s) quarantined",
     ))
     audit.append(run_id, "guard", {
         "findings": [f.model_dump(mode="json") for f in findings],
         "quarantined": sorted(quarantined_docs),
+        "blocked_scene_text": sorted(blocked_scene_text),
     })
 
     # ---- Intake (quarantined) -------------------------------------------
@@ -106,7 +119,14 @@ def assess(req: AssessRequest) -> ClaimDraft:
         for item_id in ev.claimed_item_ids:
             evidence_by_item.setdefault(item_id, []).append(f"evidence:{ev.doc_id}")
 
+    undamaged = []
     for item in req.manifest.items:
+        if item.is_undamaged:
+            # Severity 0: present but undamaged. Not claimable, and kept aside as
+            # evidence for the consistency/fraud checker.
+            undamaged.append(item.id)
+            continue
+
         p, cov, excl, conf, rationale = peril.adjudicate(item)
         est, bound_findings = estimator.estimate_for(item)
         findings.extend(bound_findings)
@@ -126,7 +146,8 @@ def assess(req: AssessRequest) -> ClaimDraft:
         ms=(time.perf_counter() - t0) * 1000,
         tool_calls=["get_policy", "flag_for_human"],
         note=f"{sum(1 for li in line_items if li.peril.value == 'wind_driven_rain')} "
-             f"wind-driven-rain determination(s)",
+             f"wind-driven-rain determination(s); {len(undamaged)} severity-0 item(s) "
+             f"excluded as undamaged",
     ))
 
     t0 = time.perf_counter()
