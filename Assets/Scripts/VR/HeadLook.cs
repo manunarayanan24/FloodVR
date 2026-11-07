@@ -7,8 +7,13 @@ using System.Runtime.InteropServices;
 namespace FloodVR
 {
     // Attach to the "Head" transform of the VR rig.
-    // WebGL: DeviceOrientation.jslib feeds OnDeviceQuaternion("x,y,z,w").
-    // Editor/desktop: mouse-look fallback (hold anywhere / move mouse).
+    // WebGL: DeviceOrientation.jslib feeds OnDeviceQuaternion("x,y,z,w") with the camera
+    // orientation (three.js convention: right-handed, Y up, looks down -Z, already corrected
+    // for the phone being held in landscape). We convert it to Unity's left-handed frame.
+    // Editor/desktop: mouse-look fallback.
+    //
+    // Yaw is relative: the first time the phone is held level (or on Recenter()), the current
+    // heading becomes "straight ahead" = the rig's forward (the StandPoint's look direction).
     public class HeadLook : MonoBehaviour
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -22,11 +27,19 @@ namespace FloodVR
         public bool invertYaw = false;
         public bool invertPitch = false;
 
+        [Header("Recentre")]
+        [Tooltip("Auto-recentre once the phone has been held level this long (it went into the viewer).")]
+        public float autoRecenterLevelSeconds = 0.75f;
+        public float levelPitchLimit = 30f;
+
         [Header("Editor mouse-look fallback")]
         public float mouseSensitivity = 3f;
 
-        private Quaternion _target = Quaternion.identity;
+        private Quaternion _sensor = Quaternion.identity; // Unity-frame camera orientation from the phone
         private bool _hasDeviceData = false;
+        private float _yawOffset = 0f;
+        private bool _recentered = false;
+        private float _levelTime = 0f;
         private float _yaw, _pitch;
 
         void Start()
@@ -48,28 +61,62 @@ namespace FloodVR
             if (!float.TryParse(p[2], NumberStyles.Float, ci, out float z)) return;
             if (!float.TryParse(p[3], NumberStyles.Float, ci, out float w)) return;
 
-            // Device frame (WebGL, right-handed) -> Unity (left-handed, Y up).
-            // Common WebXR/Cardboard conversion; if look feels mirrored/tilted on a
-            // real phone, toggle invertYaw/invertPitch rather than editing this.
-            _target = new Quaternion(-x, -z, y, w);
+            // three.js (right-handed, camera looks -Z) -> Unity (left-handed, camera looks +Z):
+            // mirror the Z axis, which negates the x and y quaternion components.
+            _sensor = new Quaternion(-x, -y, z, w);
             _hasDeviceData = true;
+        }
+
+        // Makes the current heading "straight ahead". Callable from JS: window.floodVR.recenter().
+        public void Recenter()
+        {
+            if (_hasDeviceData) _yawOffset = -YawOf(_sensor);
+            _yaw = 0f;
+            _recentered = true;
+        }
+
+        static float YawOf(Quaternion q)
+        {
+            Vector3 f = q * Vector3.forward;
+            return Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
+        }
+
+        static float Wrap(float a)
+        {
+            a %= 360f;
+            if (a > 180f) a -= 360f;
+            if (a < -180f) a += 360f;
+            return a;
         }
 
         void Update()
         {
             if (_hasDeviceData)
             {
-                Quaternion q = _target;
+                if (!_recentered)
+                {
+                    Vector3 f = _sensor * Vector3.forward;
+                    float pitch = Mathf.Asin(Mathf.Clamp(f.y, -1f, 1f)) * Mathf.Rad2Deg;
+                    if (Mathf.Abs(pitch) < levelPitchLimit)
+                    {
+                        _levelTime += Time.unscaledDeltaTime;
+                        if (_levelTime >= autoRecenterLevelSeconds) Recenter();
+                    }
+                    else _levelTime = 0f;
+                }
+
+                Quaternion q = Quaternion.Euler(0f, _yawOffset, 0f) * _sensor;
                 if (invertYaw || invertPitch)
                 {
                     Vector3 e = q.eulerAngles;
-                    if (invertYaw) e.y = -e.y;
-                    if (invertPitch) e.x = -e.x;
-                    q = Quaternion.Euler(e);
+                    float ex = Wrap(e.x), ey = Wrap(e.y), ez = Wrap(e.z);
+                    if (invertYaw) ey = -ey;
+                    if (invertPitch) ex = -ex;
+                    q = Quaternion.Euler(ex, ey, ez);
                 }
                 transform.localRotation = smoothing <= 0f
                     ? q
-                    : Quaternion.Slerp(transform.localRotation, q, Time.deltaTime * smoothing);
+                    : Quaternion.Slerp(transform.localRotation, q, Mathf.Clamp01(Time.deltaTime * smoothing));
             }
             else
             {

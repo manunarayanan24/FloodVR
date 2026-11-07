@@ -1,23 +1,52 @@
 mergeInto(LibraryManager.library, {
   // Called once from HeadLook.Start(). Sets up the gyro listener and exposes
   // window.floodVR.requestPermission() for the template's "Enter VR" tap (iOS).
+  //
+  // Sends the CAMERA orientation (three.js DeviceOrientationControls convention:
+  // right-handed, Y up, camera looks down -Z, corrected for the phone being held in
+  // landscape inside the viewer) as "x,y,z,w". HeadLook.cs converts it to Unity's
+  // left-handed frame with (-x, -y, z, w).
   FloodVR_StartOrientation: function (goNamePtr, methodPtr) {
     var go = UTF8ToString(goNamePtr);
     var method = UTF8ToString(methodPtr);
+    var D2R = Math.PI / 180;
 
-    function toQuaternion(alpha, beta, gamma) {
-      var _x = (beta  || 0) * Math.PI / 180;
-      var _y = (gamma || 0) * Math.PI / 180;
-      var _z = (alpha || 0) * Math.PI / 180;
-      var cX = Math.cos(_x/2), cY = Math.cos(_y/2), cZ = Math.cos(_z/2);
-      var sX = Math.sin(_x/2), sY = Math.sin(_y/2), sZ = Math.sin(_z/2);
-      // ZXY intrinsic order (W3C deviceorientation convention)
+    function mul(a, b) {
       return [
-        sX*cY*cZ - cX*sY*sZ,
-        cX*sY*cZ + sX*cY*sZ,
-        cX*cY*sZ + sX*sY*cZ,
-        cX*cY*cZ - sX*sY*sZ
+        a[0]*b[3] + a[3]*b[0] + a[1]*b[2] - a[2]*b[1],
+        a[1]*b[3] + a[3]*b[1] + a[2]*b[0] - a[0]*b[2],
+        a[2]*b[3] + a[3]*b[2] + a[0]*b[1] - a[1]*b[0],
+        a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
       ];
+    }
+
+    function screenAngle() {
+      var a = 0;
+      if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+        a = window.screen.orientation.angle;
+      } else if (typeof window.orientation === 'number') {
+        a = window.orientation;
+      }
+      if (a > 180) a -= 360;
+      return a;
+    }
+
+    function toCameraQuaternion(alpha, beta, gamma, orient) {
+      // Euler order YXZ with (x = beta, y = alpha, z = -gamma)
+      var x = beta * D2R, y = alpha * D2R, z = -gamma * D2R;
+      var c1 = Math.cos(x / 2), c2 = Math.cos(y / 2), c3 = Math.cos(z / 2);
+      var s1 = Math.sin(x / 2), s2 = Math.sin(y / 2), s3 = Math.sin(z / 2);
+      var q = [
+        s1*c2*c3 + c1*s2*s3,
+        c1*s2*c3 - s1*c2*s3,
+        c1*c2*s3 - s1*s2*c3,
+        c1*c2*c3 + s1*s2*s3
+      ];
+      var h = Math.sqrt(0.5);
+      q = mul(q, [-h, 0, 0, h]);                       // camera looks out the back of the phone
+      var o = -orient * D2R / 2;
+      q = mul(q, [0, 0, Math.sin(o), Math.cos(o)]);    // compensate screen rotation (landscape)
+      return q;
     }
 
     function send(csv) {
@@ -29,7 +58,7 @@ mergeInto(LibraryManager.library, {
 
     function handler(e) {
       if (e.alpha === null || e.alpha === undefined) return;
-      var q = toQuaternion(e.alpha, e.beta, e.gamma);
+      var q = toCameraQuaternion(e.alpha || 0, e.beta || 0, e.gamma || 0, screenAngle());
       send(q[0].toFixed(5)+","+q[1].toFixed(5)+","+q[2].toFixed(5)+","+q[3].toFixed(5));
     }
 
@@ -52,10 +81,40 @@ mergeInto(LibraryManager.library, {
         }
       } catch (err) { attach(); }
     };
+    // Lets the page re-centre the view: window.floodVR.recenter()
+    window.floodVR.recenter = function () { send_recenter(); };
+    function send_recenter() {
+      var inst = (typeof unityInstance !== 'undefined' && unityInstance) ||
+                 (window.unityInstance) ||
+                 (typeof gameInstance !== 'undefined' && gameInstance);
+      if (inst) inst.SendMessage(go, 'Recenter');
+    }
 
     // Android/desktop fire without a permission gesture; iOS waits for the tap.
     var needsGesture = (typeof DeviceOrientationEvent !== 'undefined' &&
                         typeof DeviceOrientationEvent.requestPermission === 'function');
     if (!needsGesture) attach();
+  },
+
+  // Reads ?name=value from the page URL. A value that is present is also saved in
+  // localStorage, because launching from the iOS home screen drops the query string;
+  // when the URL has no value the saved one is returned. Empty string if neither exists.
+  FloodVR_GetQueryParam: function (namePtr) {
+    var name = UTF8ToString(namePtr);
+    var val = '';
+    var key = 'floodvr_' + name;
+    try {
+      var v = new URLSearchParams(window.location.search).get(name);
+      if (v !== null && v !== '') {
+        val = v;
+        try { window.localStorage.setItem(key, v); } catch (e1) {}
+      } else {
+        try { val = window.localStorage.getItem(key) || ''; } catch (e2) {}
+      }
+    } catch (e) {}
+    var size = lengthBytesUTF8(val) + 1;
+    var buf = _malloc(size);
+    stringToUTF8(val, buf, size);
+    return buf;
   }
 });
