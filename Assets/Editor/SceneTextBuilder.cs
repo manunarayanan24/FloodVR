@@ -47,7 +47,9 @@ namespace FloodVR
             GameObject textGO = new GameObject($"SceneText_{st.id}_Text");
             textGO.transform.SetParent(parent, false);
             textGO.transform.localPosition = localPos + new Vector3(0f, 0f, 0.01f);
-            textGO.transform.localRotation = Quaternion.identity;
+            // TMP's default glyph quad faces -Z; rotate so it reads correctly
+            // to a viewer standing in front of the card (+Z, out of the fridge).
+            textGO.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             // local units == world meters on this object, regardless of the parent's scale
             textGO.transform.localScale = new Vector3(1f / parentScale.x, 1f / parentScale.y, 1f / parentScale.z);
 

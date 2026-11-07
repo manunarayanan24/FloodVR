@@ -4,6 +4,8 @@
 
 **Done:** ...plus a prompt-injection sticky note on the fridge (TextMeshPro 3D text + SceneText component), exported in damage_manifest.json under a separate "scene_text" array, not as a DamageItem.
 
-**Doing:** Tools > FloodVR > Capture Screens (1280x720 PNGs per StandPoint into contracts/samples/).
+**Done:** ...plus Tools > FloodVR > Capture Screens: 9 1280x720 PNGs (3 StandPoints x 3 angles) into contracts/samples/screens/, manifest copied to contracts/samples/house_manifest.json. Verified by viewing renders -- fixed a mirrored-text bug in the sticky note along the way (TMP backface was pointing into the room).
+
+**Doing:** Look polish (flood water plane, grey sky, dim lighting, puddles).
 
 **Blocked:** Nothing.
