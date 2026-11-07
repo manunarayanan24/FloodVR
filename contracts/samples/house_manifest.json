@@ -8,6 +8,7 @@
             "note": "Living room flooring has buckled and lifted roughly 2 cm due to prolonged water saturation.",
             "severity": 3,
             "measuredValue": 2.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 3.0,
                 "y": 0.029999999329447748,
@@ -22,6 +23,7 @@
             "note": "Miscellaneous debris washed into the hallway during the flood.",
             "severity": 1,
             "measuredValue": 1.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 2.0,
                 "y": 0.03999999910593033,
@@ -36,6 +38,7 @@
             "note": "Dislodged cabinet contents and packaging scattered across the kitchen floor.",
             "severity": 1,
             "measuredValue": 1.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 8.5,
                 "y": 0.05999999865889549,
@@ -50,10 +53,26 @@
             "note": "Waterlogged books and papers displaced onto the living room floor.",
             "severity": 1,
             "measuredValue": 1.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 3.0,
                 "y": 0.07999999821186066,
                 "z": 4.0
+            }
+        },
+        {
+            "id": "electronics_undamaged",
+            "label": "Router/electronics on bookshelf top shelf",
+            "category": "contents",
+            "unit": "",
+            "note": "above waterline - no flood damage",
+            "severity": 0,
+            "measuredValue": 0.0,
+            "heightAboveFloor": 1.4500000476837159,
+            "position": {
+                "x": 0.44999998807907107,
+                "y": 1.4500000476837159,
+                "z": 3.9000000953674318
             }
         },
         {
@@ -64,6 +83,7 @@
             "note": "Refrigerator was tipped by the flood surge and now partially blocks the kitchen walkway.",
             "severity": 3,
             "measuredValue": 85.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 6.5,
                 "y": 0.47691810131073,
@@ -78,6 +98,7 @@
             "note": "Furnace was fully submerged during the flood. Electrical and combustion components likely compromised -- CO and fire risk, do not operate.",
             "severity": 5,
             "measuredValue": 100.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 1.0,
                 "y": 0.6000000238418579,
@@ -92,6 +113,7 @@
             "note": "Diagonal structural crack in the hallway/closet partition wall. Recommend a structural engineer assessment before re-occupancy.",
             "severity": 4,
             "measuredValue": 1.7999999523162842,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 1.0,
                 "y": 1.2999999523162842,
@@ -106,6 +128,7 @@
             "note": "Outlet is below the waterline directly adjacent to the flooded water heater. Highest-priority electrical hazard in the house.",
             "severity": 5,
             "measuredValue": 0.30000001192092898,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 0.07999999821186066,
                 "y": 0.30000001192092898,
@@ -120,6 +143,7 @@
             "note": "Outlet sits below the flood waterline. Shock/fire risk -- do not energize until inspected by a licensed electrician.",
             "severity": 4,
             "measuredValue": 0.30000001192092898,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 9.920000076293946,
                 "y": 0.30000001192092898,
@@ -134,6 +158,7 @@
             "note": "Outlet sits below the flood waterline. Shock/fire risk -- do not energize until inspected by a licensed electrician.",
             "severity": 4,
             "measuredValue": 0.30000001192092898,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 9.920000076293946,
                 "y": 0.30000001192092898,
@@ -148,6 +173,7 @@
             "note": "Outlet sits below the flood waterline. Shock/fire risk -- do not energize until inspected by a licensed electrician.",
             "severity": 4,
             "measuredValue": 0.30000001192092898,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 0.07999999821186066,
                 "y": 0.30000001192092898,
@@ -162,10 +188,26 @@
             "note": "Stain near the kitchen ceiling line is above the flood waterline and consistent with wind-driven rain intrusion through the roof/window, not groundwater flooding -- a separate peril to adjudicate.",
             "severity": 3,
             "measuredValue": 1.2000000476837159,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 8.0,
                 "y": 2.580000162124634,
                 "z": 5.5
+            }
+        },
+        {
+            "id": "laptop_undamaged",
+            "label": "Laptop on high shelf",
+            "category": "contents",
+            "unit": "",
+            "note": "above waterline - no flood damage",
+            "severity": 0,
+            "measuredValue": 0.0,
+            "heightAboveFloor": 1.600000023841858,
+            "position": {
+                "x": 0.44999998807907107,
+                "y": 1.600000023841858,
+                "z": 3.5
             }
         },
         {
@@ -176,6 +218,7 @@
             "note": "Visible mold growth on the closet wall above the water heater, indicating prolonged moisture exposure. Air quality concern.",
             "severity": 4,
             "measuredValue": 0.30000001192092898,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 0.07999999821186066,
                 "y": 1.0,
@@ -190,6 +233,7 @@
             "note": "Mold is spreading at the base of the east kitchen wall below the waterline.",
             "severity": 3,
             "measuredValue": 0.25,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 9.899999618530274,
                 "y": 0.5,
@@ -204,6 +248,7 @@
             "note": "Approximately 3 cm of mud and silt coats all flooring throughout the house.",
             "severity": 3,
             "measuredValue": 3.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 5.0,
                 "y": 0.016999999061226846,
@@ -218,6 +263,7 @@
             "note": "Area rug is saturated and stained; likely a total loss.",
             "severity": 2,
             "measuredValue": 100.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 2.0,
                 "y": 0.019999999552965165,
@@ -232,6 +278,7 @@
             "note": "Upholstered sofa is fully saturated and shows water staining; total loss, mold risk if not removed quickly.",
             "severity": 3,
             "measuredValue": 100.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 1.0,
                 "y": 0.4000000059604645,
@@ -246,6 +293,7 @@
             "note": "Baseboard trim in the kitchen is warped and separating from the wall below the waterline.",
             "severity": 2,
             "measuredValue": 0.8999999761581421,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 8.0,
                 "y": 0.05000000074505806,
@@ -260,6 +308,7 @@
             "note": "Baseboard trim in the living room is warped and separating from the wall below the waterline.",
             "severity": 2,
             "measuredValue": 0.8999999761581421,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 3.0,
                 "y": 0.05000000074505806,
@@ -274,6 +323,7 @@
             "note": "Particleboard cabinet carcass has swollen and delaminated from water absorption.",
             "severity": 2,
             "measuredValue": 5.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 9.600000381469727,
                 "y": 0.44999998807907107,
@@ -288,10 +338,26 @@
             "note": "Particleboard cabinet carcass has swollen and delaminated from water absorption.",
             "severity": 2,
             "measuredValue": 5.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 8.0,
                 "y": 0.44999998807907107,
                 "z": 7.599999904632568
+            }
+        },
+        {
+            "id": "tv_damaged",
+            "label": "Water-damaged TV",
+            "category": "contents",
+            "unit": "% submerged at base",
+            "note": "TV sits on its stand with its base at 0.6 m, below the 0.9 m flood waterline -- water-damaged electronics, total loss.",
+            "severity": 3,
+            "measuredValue": 100.0,
+            "heightAboveFloor": 0.6000000238418579,
+            "position": {
+                "x": 5.75,
+                "y": 1.0,
+                "z": 5.5
             }
         },
         {
@@ -302,6 +368,7 @@
             "note": "Water heater was fully submerged during the flood. Electrical/gas components are likely compromised -- do not operate.",
             "severity": 5,
             "measuredValue": 100.0,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 0.5,
                 "y": 0.8999999761581421,
@@ -316,6 +383,7 @@
             "note": "Waterline visible on all walls at approximately 0.9 m; flooding reached mid-wall height throughout the house.",
             "severity": 3,
             "measuredValue": 0.8999999761581421,
+            "heightAboveFloor": 0.0,
             "position": {
                 "x": 0.0,
                 "y": 0.0,

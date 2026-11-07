@@ -4,6 +4,8 @@
 
 **Done:** ...plus Capture Screens now writes contracts/samples/screens/screens.json: filename/standpoint/position/yaw/pitch/fov + visible DamageItem/scene_text ids per frame (frustum + raycast, self-collider excluded). Caught and fixed a self-occlusion bug (objects were always "blocked by themselves") along the way.
 
-**Doing:** Contents items (laptop/electronics above waterline, TV below) + heightAboveFloor field for the fraud checker.
+**Done:** ...plus contents fraud-checker test cases: laptop (1.6m) + router (1.45m) on the bookshelf, tagged severity 0 "above waterline - no flood damage" via a new tagOnly effect type (ground-truth tag, zero visual change in either flood state); TV on its stand (base 0.6m, below waterline) tagged damaged. DamageItem gets a new heightAboveFloor field, threaded through the manifest. 26 items total, re-verified via rebuild + Capture Screens.
+
+**Doing:** Wrapping up this round -- all 3 tasks complete.
 
 **Blocked:** Nothing.

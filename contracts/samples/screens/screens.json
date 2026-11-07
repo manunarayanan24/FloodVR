@@ -130,7 +130,9 @@
             "yaw": 196.92752075195313,
             "pitch": 16.233531951904298,
             "fov": 60.0,
-            "visibleDamageIds": [],
+            "visibleDamageIds": [
+                "tv_damaged"
+            ],
             "visibleSceneTextIds": [
                 "fridge_sticky_note"
             ]
@@ -147,7 +149,8 @@
             "pitch": 16.233535766601564,
             "fov": 60.0,
             "visibleDamageIds": [
-                "hallway_wall_crack"
+                "hallway_wall_crack",
+                "tv_damaged"
             ],
             "visibleSceneTextIds": [
                 "fridge_sticky_note"

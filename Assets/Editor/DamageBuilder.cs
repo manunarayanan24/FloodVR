@@ -33,6 +33,7 @@ namespace FloodVR
         public string id, label, category, unit, note;
         public int severity;
         public float measuredValue;
+        public float heightAboveFloor;
         public DamageEffect effect;
     }
 
@@ -48,6 +49,7 @@ namespace FloodVR
         public string id, label, category, unit, note;
         public int severity;
         public float measuredValue;
+        public float heightAboveFloor;
         public Vec3Data position;
     }
 
@@ -96,7 +98,8 @@ namespace FloodVR
 
                 bool mutating = item.effect.type == "scaleFurniture" || item.effect.type == "tipFurniture"
                     || item.effect.type == "darkenFurniture" || item.effect.type == "flagExisting";
-                if (!mutating && carrier.GetComponent<FloodVisual>() == null)
+                bool untouched = item.effect.type == "tagOnly"; // existing furniture, no visual change in either flood state
+                if (!mutating && !untouched && carrier.GetComponent<FloodVisual>() == null)
                 {
                     FloodVisual fv = carrier.AddComponent<FloodVisual>();
                     fv.additiveOnly = true;
@@ -111,6 +114,7 @@ namespace FloodVR
                 di.measuredValue = item.measuredValue;
                 di.unit = item.unit;
                 di.note = item.note;
+                di.heightAboveFloor = item.heightAboveFloor;
             }
         }
 
@@ -147,6 +151,9 @@ namespace FloodVR
 
                 case "flagExisting":
                     return ApplyFlagExisting(item, fx);
+
+                case "tagOnly":
+                    return ApplyTagOnly(item, fx);
 
                 case "decal":
                     return BuildDecal(damageRoot, item, fx);
@@ -421,6 +428,20 @@ namespace FloodVR
             return go;
         }
 
+        // Tags an existing object as ground truth without changing its look at
+        // all -- for content items that are confirmed undamaged in both the
+        // pre- and post-flood views (e.g. above the waterline).
+        private static GameObject ApplyTagOnly(DamageItemData item, DamageEffect fx)
+        {
+            GameObject go = GameObject.Find(fx.targetId);
+            if (go == null)
+            {
+                Debug.LogWarning($"[FloodVR] tagOnly target '{fx.targetId}' not found for '{item.id}'");
+                return null;
+            }
+            return go;
+        }
+
         private static void AttachUnchangedTransformFloodVisual(GameObject go, Color cleanColor, Color damagedColor)
         {
             FloodVisual fv = go.AddComponent<FloodVisual>();
@@ -509,6 +530,7 @@ namespace FloodVR
                 measuredValue = di.measuredValue,
                 unit = di.unit,
                 note = di.note,
+                heightAboveFloor = di.heightAboveFloor,
                 position = new Vec3Data { x = di.transform.position.x, y = di.transform.position.y, z = di.transform.position.z }
             }).OrderBy(e => e.id).ToArray();
 

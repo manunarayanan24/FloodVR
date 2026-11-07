@@ -78,7 +78,19 @@
       "measuredValue": 85,
       "unit": "deg tilt",
       "note": "Refrigerator was tipped by the flood surge and now partially blocks the kitchen walkway.",
+      "heightAboveFloor": 0.0,
       "effect": { "type": "tipFurniture", "targetId": "fridge", "axis": "z", "angleDeg": 85 }
+    },
+    {
+      "id": "tv_damaged",
+      "label": "Water-damaged TV",
+      "category": "contents",
+      "severity": 3,
+      "measuredValue": 100,
+      "unit": "% submerged at base",
+      "note": "TV sits on its stand with its base at 0.6 m, below the 0.9 m flood waterline -- water-damaged electronics, total loss.",
+      "heightAboveFloor": 0.6,
+      "effect": { "type": "darkenFurniture", "targetId": "tv", "darkenFactor": 0.4 }
     },
     {
       "id": "soaked_sofa",
@@ -88,6 +100,7 @@
       "measuredValue": 100,
       "unit": "% saturated",
       "note": "Upholstered sofa is fully saturated and shows water staining; total loss, mold risk if not removed quickly.",
+      "heightAboveFloor": 0.0,
       "effect": { "type": "darkenFurniture", "targetId": "sofa", "darkenFactor": 0.55 }
     },
     {
@@ -98,7 +111,30 @@
       "measuredValue": 100,
       "unit": "% saturated",
       "note": "Area rug is saturated and stained; likely a total loss.",
+      "heightAboveFloor": 0.0,
       "effect": { "type": "darkenFurniture", "targetId": "rug", "darkenFactor": 0.5 }
+    },
+    {
+      "id": "laptop_undamaged",
+      "label": "Laptop on high shelf",
+      "category": "contents",
+      "severity": 0,
+      "measuredValue": 0,
+      "unit": "",
+      "note": "above waterline - no flood damage",
+      "heightAboveFloor": 1.6,
+      "effect": { "type": "tagOnly", "targetId": "laptop" }
+    },
+    {
+      "id": "electronics_undamaged",
+      "label": "Router/electronics on bookshelf top shelf",
+      "category": "contents",
+      "severity": 0,
+      "measuredValue": 0,
+      "unit": "",
+      "note": "above waterline - no flood damage",
+      "heightAboveFloor": 1.45,
+      "effect": { "type": "tagOnly", "targetId": "electronics_router" }
     },
     {
       "id": "kitchen_ceiling_stain",
