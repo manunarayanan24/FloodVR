@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#fff;}
+    #unity-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000;}
+    #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+             background:#05121f;z-index:10;text-align:center;padding:24px;}
+    #overlay h1{font-size:20px;margin:0 0 6px;} #overlay p{opacity:.75;margin:4px 0;font-size:14px;}
+    #enter{margin-top:22px;padding:16px 34px;font-size:18px;border:0;border-radius:40px;background:#2e8bff;color:#fff;}
+    #rotate{display:none;position:fixed;inset:0;z-index:20;background:#05121f;align-items:center;justify-content:center;font-size:18px;}
+    #bar{position:fixed;left:0;bottom:0;height:3px;width:0;background:#2e8bff;z-index:15;transition:width .15s;}
+    @media(orientation:portrait){#rotate{display:flex;}}
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas"></canvas>
+  <div id="bar"></div>
+  <div id="rotate">Rotate your phone to landscape ↻</div>
+  <div id="overlay">
+    <h1>FloodVR — Adjuster Walkthrough</h1>
+    <p>Put the phone in the viewer. Landscape.</p>
+    <p>Tap to enable motion &amp; go fullscreen.</p>
+    <button id="enter">Enter VR</button>
+  </div>
+  <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+  <script>
+    var canvas = document.querySelector("#unity-canvas");
+    var bar = document.querySelector("#bar");
+    createUnityInstance(canvas, {
+      dataUrl: "Build/{{{ DATA_FILENAME }}}",
+      frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: "Build/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "{{{ COMPANY_NAME }}}",
+      productName: "{{{ PRODUCT_NAME }}}",
+      productVersion: "{{{ PRODUCT_VERSION }}}"
+    }, function (p) { bar.style.width = (p*100) + "%"; })
+    .then(function (instance) {
+      window.unityInstance = instance;
+      bar.style.width = "0";
+    });
+
+    async function requestWakeLock() {
+      try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch (e) {}
+    }
+    function goFullscreen() {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+    }
+    document.querySelector("#enter").addEventListener("click", function () {
+      if (window.floodVR && window.floodVR.requestPermission) window.floodVR.requestPermission();
+      requestWakeLock();
+      goFullscreen();
+      document.querySelector("#overlay").style.display = "none";
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") requestWakeLock();
+    });
+  </script>
+</body>
+</html>
