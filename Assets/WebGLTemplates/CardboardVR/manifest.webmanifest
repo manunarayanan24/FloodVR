@@ -1,0 +1,9 @@
+{
+  "name": "FloodVR Adjuster Walkthrough",
+  "short_name": "FloodVR",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05121f",
+  "theme_color": "#05121f",
+  "start_url": "./index.html"
+}
