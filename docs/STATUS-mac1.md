@@ -8,6 +8,6 @@
 
 **Done:** ...plus look polish: outdoor flood water frame around the house at 0.3m (visible through windows, excludes the interior footprint), grey overcast sky + fog via solid-color camera clear (no skybox), dimmer light (0.8), flat ambient, 3 floor puddles. No realtime shadows; verified by re-running Capture Screens and eyeballing renders.
 
-**Doing:** Writing this status doc / wrapping up.
+**Doing:** Idle, all 6 tasks from this round complete.
 
 **Blocked:** Nothing.
