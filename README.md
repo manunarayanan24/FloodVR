@@ -269,3 +269,6 @@ drive (b) near 0% even when detection misses.
   inspected, blue, priority 4). Without `?seen` nothing changes. Schema text updated in `contracts/callouts.schema.json`.
 - Windows → Ragotham: NVIDIA-hosted speech (Parakeet ASR + Magpie TTS) verified working on our NVIDIA key, $0 — no paid
   LiveKit plugin needed. Still need `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` in Windows' `agents\.env`.
+- Windows → Mac 2 (Ayushmaan): LiveKit voice is live. Try `https://<tunnel>/voice-test` on the iPhone first, then
+  follow `contracts/voice_unity/README.md` (copy FloodVRVoice.jslib + LiveKitVoice.cs, ~10 lines in VoiceClient).
+  Your Safari speech → `POST /voice` path keeps working as the fallback.

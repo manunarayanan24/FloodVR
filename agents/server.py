@@ -287,6 +287,20 @@ def console() -> FileResponse:
     return FileResponse(index)
 
 
+@app.get("/voice/client.js")
+def voice_client() -> FileResponse:
+    """Browser/WebGL LiveKit voice client (window.FloodVRVoice). The headset's
+    jslib loads this, so it can be fixed here without rebuilding the app."""
+    return FileResponse(CONSOLE_DIR / "floodvr-voice.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/voice-test")
+def voice_test() -> FileResponse:
+    """Phone test page: open on the iPhone, tap Connect, hold to talk."""
+    return FileResponse(CONSOLE_DIR / "voice.html")
+
+
 SCREENS_DIR = settings.CONTRACTS_DIR / "samples" / "screens"
 
 

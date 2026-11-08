@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FloodVR Voice Test</title>
+<style>
+  :root { --bg:#0f171d; --panel:#16222b; --ink:#e3ecf2; --muted:#94a6b3; --accent:#6db6de; --hot:#f08a7c; color-scheme: dark; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui, -apple-system, sans-serif;
+         padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  #status { color:var(--muted); font:13px ui-monospace, monospace; margin-bottom:16px; }
+  button { font:600 18px system-ui; color:var(--bg); background:var(--accent); border:0; border-radius:14px;
+           width:100%; padding:22px; touch-action:none; user-select:none; -webkit-user-select:none; }
+  button:disabled { opacity:.45; }
+  #talk.on { background:var(--hot); }
+  #log { margin-top:18px; display:grid; gap:10px; }
+  .msg { background:var(--panel); border-radius:10px; padding:10px 12px; }
+  .msg small { display:block; color:var(--muted); font:12px ui-monospace, monospace; margin-bottom:2px; }
+</style>
+</head>
+<body>
+<h1>FloodVR voice</h1>
+<div id="status">tap Connect</div>
+<button id="connect">Connect</button>
+<div style="height:12px"></div>
+<button id="talk" disabled>Hold to talk</button>
+<div id="log"></div>
+<script src="/voice/client.js"></script>
+<script>
+  // Every string below is set with textContent, never innerHTML.
+  var $ = function (id) { return document.getElementById(id); };
+  function add(label, text) {
+    var d = document.createElement("div"); d.className = "msg";
+    var s = document.createElement("small"); s.textContent = label;
+    d.appendChild(s); d.appendChild(document.createTextNode(text));
+    $("log").prepend(d);
+  }
+  FloodVRVoice.onStatus(function (s) {
+    $("status").textContent = s;
+    $("talk").disabled = !(s === "ready" || s === "listening");
+  });
+  FloodVRVoice.onHeard(function (t) { add("heard", t); });
+  FloodVRVoice.onReply(function (r) {
+    add("agent (" + r.kind + ")", r.spoken_reply || "");
+    (r.updates || []).forEach(function (u) { add("proposal", u.field + " on " + u.item_id + ": " + u.value); });
+  });
+  $("connect").addEventListener("click", function () {
+    $("connect").disabled = true;
+    FloodVRVoice.connect(location.origin).then(function () { $("connect").textContent = "Connected"; })
+      .catch(function () { $("connect").disabled = false; });
+  });
+  var talk = $("talk");
+  function down(e) { e.preventDefault(); talk.classList.add("on"); FloodVRVoice.setMic(true); }
+  function up(e) { e.preventDefault(); talk.classList.remove("on"); FloodVRVoice.setMic(false); }
+  talk.addEventListener("pointerdown", down);
+  talk.addEventListener("pointerup", up);
+  talk.addEventListener("pointercancel", up);
+  talk.addEventListener("pointerleave", function (e) { if (talk.classList.contains("on")) up(e); });
+</script>
+</body>
+</html>

@@ -40,6 +40,7 @@ log = logging.getLogger("floodvr.voice")
 API = os.getenv("FLOODVR_API", "http://localhost:8000")
 TOPIC_REPLY = "floodvr.voice"
 TOPIC_GAZE = "floodvr.gaze"
+TOPIC_HEARD = "floodvr.heard"
 
 
 def _post_voice(transcript: str, gaze: str | None) -> dict:
@@ -75,6 +76,11 @@ async def entrypoint(ctx) -> None:
             return
 
         async def _reply() -> None:
+            # What the agent heard, for the headset's debug line (topic floodvr.heard).
+            from agents import output_guard
+            heard, _ = output_guard.sanitise_text(ev.transcript[:500])
+            await ctx.room.local_participant.publish_data(
+                heard.encode(), topic=TOPIC_HEARD, reliable=True)
             try:
                 res = await asyncio.to_thread(_post_voice, ev.transcript, state["gaze"])
             except Exception as exc:  # noqa: BLE001 - keep the room alive
