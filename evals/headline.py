@@ -18,6 +18,7 @@ from agents import settings
 
 RESULTS_PATH = settings.EVALS_DIR / "results.json"
 ENDTOEND_PATH = settings.EVALS_DIR / "endtoend.json"
+PLANNER_PATH = settings.EVALS_DIR / "endtoend_planner.json"
 
 # The set we report. Rules were tuned on "heldout"; "heldout2" was generated after.
 # If a newer, untouched set is added, change this one constant.
@@ -59,6 +60,18 @@ def build(results: dict[str, Any], endtoend: dict[str, Any] | None) -> dict[str,
         head["impact_note"] = (f"endtoend.json is for set {endtoend.get('set')!r}, "
                                f"not {REPORTED_SET!r}; run "
                                f"`python -m evals.endtoend --set {REPORTED_SET}`")
+    planned = _load(PLANNER_PATH)
+    if planned and planned.get("set") == REPORTED_SET:
+        o = planned["ours"]
+        head["impact_with_llm_orchestrator"] = {
+            "attacks": o["attacks"],
+            "claims_changed_guard_on": o["claim_changed_guard_on"],
+            "claims_changed_guard_off": o["claim_changed_guard_off"],
+            "planner_transcript_leaks": o.get("planner_transcript_leaks"),
+            "runs_with_enforced_stages": o.get("planner_runs_with_enforced_stages"),
+            "flow_violations": o.get("agentdojo", {}).get("flow_violations"),
+            "measured_at": planned.get("generated_at"),
+        }
     head["pitch"] = _pitch(head)
     return head
 

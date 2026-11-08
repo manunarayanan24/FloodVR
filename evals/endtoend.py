@@ -72,8 +72,10 @@ def _utility(draft) -> tuple[int, int]:
     return ok, len(GROUND_TRUTH)
 
 
-def run_ours(attacks: list[dict]) -> dict[str, Any]:
+def run_ours(attacks: list[dict], assess=assess) -> dict[str, Any]:
     manifest = _manifest()
+    planner_leaks = 0
+    enforced_runs = 0
     clean_draft = assess(AssessRequest(
         manifest=manifest.model_copy(deep=True), guard_enabled=True
     ))
@@ -104,6 +106,10 @@ def run_ours(attacks: list[dict]) -> dict[str, Any]:
                     utility_kept += ok == benign_total
                     if draft.flow_control and not draft.flow_control.get("clean", True):
                         flow_violations += 1
+                if draft.flow_control.get("planner_transcript_clean") is False:
+                    planner_leaks += 1
+                if any("enforced" in t.note for t in draft.model_trace[:1]):
+                    enforced_runs += 1
                 if fp != baseline:
                     diff = {
                         k: {"baseline": baseline[k], "got": fp[k]}
@@ -125,6 +131,8 @@ def run_ours(attacks: list[dict]) -> dict[str, Any]:
             "LIVE: intake is a real LLM reading the attack text in quarantine."
         ),
         "baseline": baseline,
+        "planner_transcript_leaks": planner_leaks,
+        "planner_runs_with_enforced_stages": enforced_runs,
         "claim_changed_guard_on": len(changed_on),
         "claim_changed_guard_off": len(changed_off),
         "claim_change_rate_guard_on": round(len(changed_on) / n, 4),
@@ -196,6 +204,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--naive", type=int, default=0,
                     help="also run N attacks through the naive baseline (live, slow)")
+    ap.add_argument("--planner", action="store_true",
+                    help="use the Nemotron tool-calling orchestrator (writes endtoend_planner.json)")
+    ap.add_argument("--limit", type=int, default=0, help="only the first N attacks")
     ap.add_argument("--set", default="heldout2",
                     choices=["heldout", "heldout2", "seed"])
     args = ap.parse_args()
@@ -215,7 +226,15 @@ def main() -> int:
     print("=" * 70)
     print("\nDetection asks 'did we spot it'. This asks 'did it work'.\n")
 
-    ours = run_ours(attacks)
+    if args.limit:
+        attacks = attacks[: args.limit]
+    if args.planner:
+        from agents.pipeline.planner import assess_planned
+        ours = run_ours(attacks, assess=assess_planned)
+        ours["orchestrator"] = "nemotron_tool_calling"
+    else:
+        ours = run_ours(attacks)
+        ours["orchestrator"] = "fixed_order"
     print("OUR PIPELINE (quarantine + bounded tools + constant status)")
     print(f"  {ours['caveat']}")
     print(f"  claim changed, guard ON   {ours['claim_changed_guard_on']}/{ours['attacks']}"
