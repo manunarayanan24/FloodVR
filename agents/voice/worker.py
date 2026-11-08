@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import urllib.request
+from typing import Any
 
 from agents import settings  # noqa: F401 - loads agents/.env into the environment
 
@@ -41,6 +42,9 @@ API = os.getenv("FLOODVR_API", "http://localhost:8000")
 TOPIC_REPLY = "floodvr.voice"
 TOPIC_GAZE = "floodvr.gaze"
 TOPIC_HEARD = "floodvr.heard"
+TOPIC_PTT = "floodvr.ptt"
+MERGE_PAUSE_S = 2.5    # no push-to-talk signal: answer after this long without new words
+RELEASE_GRACE_S = 1.5  # after the button is released: let the last words arrive
 
 
 def _post_voice(transcript: str, gaze: str | None) -> dict:
@@ -62,6 +66,14 @@ async def entrypoint(ctx) -> None:
 
     @ctx.room.on("data_received")
     def _on_data(pkt: rtc.DataPacket) -> None:
+        if pkt.topic == TOPIC_PTT:
+            try:
+                s = json.loads(pkt.data.decode()).get("state")
+            except (ValueError, AttributeError):
+                return
+            if s in ("pressed", "released"):
+                _on_ptt(s)
+            return
         if pkt.topic != TOPIC_GAZE:
             return
         try:
@@ -108,19 +120,57 @@ async def entrypoint(ctx) -> None:
             else:
                 rio.unset_participant()  # re-links to the next person who joins
 
+    # Speech-to-text emits several final pieces for one question ("Hey man." /
+    # "do you sense any hazards?"). Collect pieces and answer once, after a
+    # short pause, so the adjuster gets one reply per question.
+    # Push-to-talk clients send floodvr.ptt pressed/released: while held we only
+    # collect; on release we answer RELEASE_GRACE_S later (late pieces still
+    # land). Clients without that signal get a MERGE_PAUSE_S pause instead.
+    pending: dict[str, Any] = {"parts": [], "task": None, "mode": "idle"}
+
+    def _schedule(delay: float) -> None:
+        if pending["task"] is not None:
+            pending["task"].cancel()
+        pending["task"] = asyncio.create_task(_flush_after(delay))
+
+    async def _flush_after(delay: float) -> None:
+        try:
+            await asyncio.sleep(delay)
+        except asyncio.CancelledError:
+            return
+        pending["task"], pending["mode"] = None, "idle"
+        if not pending["parts"]:
+            return
+        text = " ".join(pending["parts"])[:4000]
+        pending["parts"] = []
+        await _reply(text)
+
     @session.on("user_input_transcribed")
     def _on_transcript(ev) -> None:
         if not getattr(ev, "is_final", False) or not ev.transcript.strip():
             return
+        pending["parts"].append(ev.transcript.strip())
+        if pending["mode"] == "idle":  # no push-to-talk signal: pause-based
+            _schedule(MERGE_PAUSE_S)
 
-        async def _reply() -> None:
-            # What the agent heard, for the headset's debug line (topic floodvr.heard).
+    def _on_ptt(state_name: str) -> None:
+        if state_name == "pressed":
+            pending["mode"] = "held"
+            if pending["task"] is not None:
+                pending["task"].cancel()
+                pending["task"] = None
+        elif state_name == "released":
+            pending["mode"] = "release"
+            _schedule(RELEASE_GRACE_S)
+
+    async def _reply(transcript: str) -> None:
+            # What the agent heard, for the headset's caption (topic floodvr.heard).
             from agents import output_guard
-            heard, _ = output_guard.sanitise_text(ev.transcript[:500])
+            heard, _ = output_guard.sanitise_text(transcript[:500])
             await ctx.room.local_participant.publish_data(
                 heard.encode(), topic=TOPIC_HEARD, reliable=True)
             try:
-                res = await asyncio.to_thread(_post_voice, ev.transcript, state["gaze"])
+                res = await asyncio.to_thread(_post_voice, transcript, state["gaze"])
             except Exception as exc:  # noqa: BLE001 - keep the room alive
                 log.warning("voice call failed: %s", exc)
                 session.say("Sorry, the claim server didn't answer.")
@@ -128,8 +178,6 @@ async def entrypoint(ctx) -> None:
             await ctx.room.local_participant.publish_data(
                 json.dumps(res).encode(), topic=TOPIC_REPLY, reliable=True)
             session.say(res.get("spoken_reply", "")[:300])
-
-        asyncio.create_task(_reply())
 
     # An Agent with no LLM: replies come only from /voice via session.say().
     # close_on_disconnect=False: if the phone drops and rejoins, the agent is

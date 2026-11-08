@@ -66,6 +66,13 @@
       }
     });
     room.on(LK.RoomEvent.ParticipantConnected, function () { if (agentPresent()) status("ready"); });
+    // If the agent drops (e.g. the PC restarted it), ask for it again.
+    room.on(LK.RoomEvent.ParticipantDisconnected, function (p) {
+      if (String(p.identity).indexOf("agent") === 0 && !agentPresent()) {
+        status("waiting for agent");
+        nudgeAgent(String(apiBase).replace(/\/$/, ""), 0);
+      }
+    });
     room.on(LK.RoomEvent.Disconnected, function () { room = null; status("disconnected"); });
 
     await room.connect(tok.url, tok.token);
@@ -88,14 +95,22 @@
     if (!room) throw new Error("connect() first");
     clearTimeout(micTimer);
     if (on) {
+      ptt("pressed");
       await room.localParticipant.setMicrophoneEnabled(true);
       status("listening");
     } else {
       micTimer = setTimeout(function () {
+        ptt("released"); // tells the agent the question is complete
         if (room) room.localParticipant.setMicrophoneEnabled(false);
         status(agentPresent() ? "ready" : "waiting for agent");
       }, TRAIL_MS);
     }
+  }
+
+  function ptt(state) {
+    if (!room) return;
+    room.localParticipant.publishData(enc.encode(JSON.stringify({ state: state })),
+                                      { reliable: true, topic: "floodvr.ptt" });
   }
 
   function sendGaze(itemId) {
