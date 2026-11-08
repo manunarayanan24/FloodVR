@@ -81,6 +81,23 @@ attacks changed the claim** (guard ON and OFF). Utility under attack 100%; 0/46 
 Detection is the weak layer; the architecture is the strong one. (Seed set 0% and held-out #1 after tuning 8.3% are
 training scores; held-out #1 before tuning was 93.3%.)
 
+## Where the numbers come from (0.9 m, 1.5 m, 86.1 m²)
+
+- **0.9 m waterline** is authored by Mac 1: the `waterline` item's `effect.heightM` in the damage data. Unity draws
+  the wall stain band at that height (`Assets/Editor/DamageBuilder.cs`) and `GeometryExporter.cs` writes the same
+  value to `contracts/samples/house_geometry.json`. One source for the visuals and the numbers.
+- **1.5 m flood cut** = waterline + a fixed 0.6 m margin in `GeometryExporter.cs` (cutting drywall a couple of
+  feet above the waterline is standard restoration practice; the margin is a design choice).
+- **86.1 m² of drywall** is computed from the model's real walls: the exporter writes every wall's length/height
+  and every door, window and archway; `agents/pipeline/measure.py` does wall length × 1.5 m − openings per room
+  (living room: 22 m × 1.5 m − 7.95 m² = 25.05 m²) and cross-checks Unity's own totals (all 4 rooms match).
+  Pricing: 86.1 m² × $35–85/m² (`contracts/costs.json`) = the $3,014–$7,319 drywall line.
+- The agents never measure the 3D scene visually; they read the exported geometry + damage manifest. The Vision
+  Inspector looks at screenshots only to demo detection and feeds no decision.
+- So the house, flood level and damage are a designed scenario; everything computed from them is real arithmetic
+  on the model's geometry. If Mac 1 changes the waterline or a wall and re-exports, flood cut, drywall area and
+  price follow automatically with no Windows change.
+
 ## Design decisions worth knowing
 
 - Only Intake reads raw untrusted text; the planner sees counts; voice replies and callouts are server templates.
