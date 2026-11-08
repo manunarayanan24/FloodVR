@@ -234,10 +234,13 @@ Resolved requests were removed (they're in git history). Lead re-test, Sun 10:35
 31/31 lead questions correctly (item > room routing, rich item answers, help line, refusals hold);
 Mac 1 visual pass + legible fridge note landed; Vercel redeployed 10:27 with it + open-mic voice.
 
-- **Lead → Windows:** re-run the Vision Inspector cache on the new screenshots (10 now, incl.
-  `StandPoint_Kitchen_note.png`); `/vision` still serves last night's 9-image run. Update the numbers.
+- **Lead → Windows:** re-run the Vision Inspector cache again — sofa/bookshelf/kitchen chairs are
+  now CC0 models (second visual pass landed), screenshots regenerated. `/vision` is stale again.
 - **Lead → Windows:** voice wording: "7 injection attempts blocked" counts rule hits, not attempts
   (one fridge note trips 7 rules). Say "1 injection attempt blocked (7 rule hits)".
-- **Lead → Mac 1 (optional, time-boxed):** kitchen is still primitive boxes (fridge, cabinets,
-  counter/island, coffee table); floors read flat. Same ids/positions/colliders rule.
-- **All:** iPhone test of the 10:27 deploy (open mic, visuals, callouts) before judging.
+- **Lead → Mac 2:** rebuild + redeploy with this round's models/textures, then iPhone-retest.
+- **Lead (status, not a request):** fridge/cabinets/counter/coffee table are still primitive boxes
+  — no CC0 fridge model exists on Poly Haven (checked); the coffee table model's pivot is off-
+  center and renders wrong, reverted twice rather than ship it broken. Floor/wall textures and
+  sofa/bookshelf/chairs are in. Same ids/positions/colliders/geometry throughout both passes.
+- **All:** iPhone test of the next deploy (open mic, visuals, callouts) before judging.

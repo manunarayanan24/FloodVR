@@ -16,10 +16,13 @@ namespace FloodVR
             ("bookshelf", "Assets/ThirdParty/PolyHaven/Models/Shelf_01.fbx", 90f),
             ("kitchen_chair_1", "Assets/ThirdParty/PolyHaven/Models/WoodenChair_01.fbx", 0f),
             ("kitchen_chair_2", "Assets/ThirdParty/PolyHaven/Models/WoodenChair_01.fbx", 0f),
-            // CoffeeTable_01 tried and reverted: its footprint-fit scaling
-            // produced a visibly broken orientation (narrow/tall instead of
-            // low/wide) within this time-boxed pass -- left as the original
-            // primitive rather than ship something that looks wrong.
+            // CoffeeTable_01: fixed a real bug (useFileScale was misreading
+            // these Poly Haven FBX exports as centimeters, shrinking every
+            // model 100x) but this specific model's mesh content is also
+            // off-center from its own pivot, which the fitter doesn't
+            // correct for -- still renders wrong. Reverted again rather than
+            // debug pivot correction within this time box; left as the
+            // primitive. Worth a per-model pivot offset in a future pass.
         };
 
         public static void ReplaceVisuals()
@@ -33,7 +36,7 @@ namespace FloodVR
                     continue;
                 }
 
-                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+                GameObject prefab = LoadModelWithCorrectScale(modelPath);
                 if (prefab == null)
                 {
                     Debug.LogWarning($"[FloodVR] model not found at '{modelPath}' for '{furnitureId}'.");
@@ -42,6 +45,28 @@ namespace FloodVR
 
                 FitModelToPrimitive(original, prefab, yRotOffset);
             }
+        }
+
+        // These Poly Haven FBX exports come in with Unity's default import
+        // scale (0.01), which leaves them ~100x too small -- the footprint
+        // ratio math still converges on roughly the right size most of the
+        // time, but inflates floating point error and, for at least one
+        // model, produced a visibly wrong aspect. Fix it at the source so
+        // the model's bounds are close to its real-world size before any
+        // fitting math runs.
+        private static GameObject LoadModelWithCorrectScale(string path)
+        {
+            ModelImporter importer = AssetImporter.GetAtPath(path) as ModelImporter;
+            if (importer != null && importer.useFileScale)
+            {
+                // Unity auto-detected these Poly Haven FBX exports as
+                // centimeters (fileScale 0.01), shrinking every model 100x.
+                // They're actually authored in meters -- ignore the file's
+                // embedded unit metadata and trust raw vertex coordinates.
+                importer.useFileScale = false;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path);
         }
 
         private static void FitModelToPrimitive(GameObject original, GameObject prefab, float yRotOffset)
@@ -69,11 +94,19 @@ namespace FloodVR
                 return;
             }
 
+            // Min across ALL three axes (not just footprint x/z) -- a model's
+            // real-world proportions don't necessarily match the primitive
+            // box's authored aspect ratio (e.g. a side-table-height model
+            // standing in for a low coffee table), so fitting x/z alone can
+            // leave it taller than the room expects. Taking the min guarantees
+            // the model never overflows the target box in any dimension.
             Vector3 nativeSize = bounds.Value.size;
-            float footprintScale = Mathf.Min(
+            float scale = Mathf.Min(
                 nativeSize.x > 0.001f ? targetSize.x / nativeSize.x : 1f,
-                nativeSize.z > 0.001f ? targetSize.z / nativeSize.z : 1f);
-            instance.transform.localScale = Vector3.one * footprintScale;
+                Mathf.Min(
+                    nativeSize.y > 0.001f ? targetSize.y / nativeSize.y : 1f,
+                    nativeSize.z > 0.001f ? targetSize.z / nativeSize.z : 1f));
+            instance.transform.localScale = Vector3.one * scale;
 
             // Re-measure after scaling and shift so the model's lowest point
             // sits on the primitive's original base (bottom of its box).
