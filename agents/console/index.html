@@ -148,6 +148,9 @@ textarea{min-height:90px;resize:vertical}
 <script>
 "use strict";
 // Everything from the API is rendered with textContent. No innerHTML with data.
+// Every endpoint used here returns strings that already passed agents/output_guard
+// (draft scrub, sanitise_text on /attack-demo, /vision, /voice, /results) or are
+// server-side templates over structured data (/callouts, /measurements).
 const API = "";
 const $ = (s) => document.querySelector(s);
 function el(tag, attrs, ...kids) {
@@ -203,7 +206,7 @@ call("/results").then(r => {
   const h = r.headline || {}, d = h.detection, i = h.impact, p = h.impact_with_llm_orchestrator;
   const cards = $("#sec-cards");
   if (d) cards.append(card("Detection miss · fresh held-out", pct(d.miss_rate), "bad", `${d.missed}/${d.attacks} attacks not spotted by the guard`));
-  if (i) cards.append(card("Claims changed by an attack", pct(i.impact_rate_guard_on), i.impact_rate_guard_on ? "bad" : "ok",
+  if (i) cards.append(card("Targeted ASR · claim changed by an attack", pct(i.impact_rate_guard_on), i.impact_rate_guard_on ? "bad" : "ok",
     `${i.claims_changed_guard_on}/${i.attacks} guard on · ${i.claims_changed_guard_off}/${i.attacks} guard off${i.live_intake ? " · live LLM intake" : ""}`));
   if (p) cards.append(card("…with Nemotron planning", `${p.claims_changed_guard_on}/${p.attacks}`, p.claims_changed_guard_on ? "bad" : "ok",
     `planner saw untrusted text in ${p.planner_transcript_leaks} runs`));

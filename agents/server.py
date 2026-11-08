@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from agents import audit, guard, settings
+from agents import audit, guard, output_guard, settings
 from agents.llm import LLMUnavailable, vision_read
 from agents.pipeline.orchestrator import assess
 from agents.schemas import (
@@ -128,13 +128,14 @@ def attack_demo(req: AttackDemoRequest) -> JSONResponse:
 
     return JSONResponse({
         "input": {
-            "text": text,
+            "text": output_guard.sanitise_text(text)[0],
             "ocr_used": ocr_used,
             "vlm_model": vlm_model,
             "channel": channel.value,
         },
         "detected": blocked,
-        "findings": [f.model_dump(mode="json") for f in findings],
+        "findings": [{**f.model_dump(mode="json"),
+                      "snippet": output_guard.sanitise_text(f.snippet)[0]} for f in findings],
         "guarded": {
             "reached_privileged_zone": False if blocked else True,
             "security_findings": len(guarded.security_findings),
@@ -251,6 +252,11 @@ def vision() -> dict:
     data = cached()
     if not data:
         raise HTTPException(404, "no vision run yet — run `python -m agents.pipeline.vision`")
+    from agents import output_guard
+    for img in data["images"]:  # VLM output is untrusted: scrub before it leaves
+        img["transcribed_text"] = [output_guard.sanitise_text(t)[0] for t in img["transcribed_text"]]
+        for f in img["security_findings"]:
+            f["snippet"] = output_guard.sanitise_text(f["snippet"])[0]
     return data
 
 
@@ -260,7 +266,14 @@ def results() -> dict:
     path = settings.EVALS_DIR / "results.json"
     if not path.exists():
         raise HTTPException(404, "no eval results yet — run `python -m evals.run`")
-    return json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    # Missed attacks and flagged clean docs are raw evidence text: scrub before output.
+    for st in data.get("sets", {}).values():
+        for m in st.get("missed_attacks", []):
+            m["text"] = output_guard.sanitise_text(m.get("text", ""))[0]
+    for fp in data.get("clean", {}).get("flagged", []):
+        fp["text"] = output_guard.sanitise_text(fp.get("text", ""))[0]
+    return data
 
 
 @app.get("/")
