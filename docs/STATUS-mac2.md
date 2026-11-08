@@ -22,6 +22,8 @@
 
 **Next:** Rebuild + redeploy (`bash ~/ship.sh`), then iPhone-test: enter VR, allow mic, say "How high did the water get?", wait; captions + spoken answer should appear with no tap.
 
+**Done (2026-11-08 later, on iPhone feedback):** Confirmed open-mic LiveKit voice works end to end on the iPhone (just talk, agent replies, captions on the HUD). User reported gliding between rooms stopped working after Mac 1's visual pass (new furniture mesh colliders block the thin beam gaze column). Enlarged `StandPointNav` beam BoxCollider from world 0.4x1.6x0.4 to 1.2x3x1.2 m so beams remain hit-able across crowded rooms. Awaiting rebuild + retest.
+
 **Blocked:** Nothing. All of Mac 2's lane is done.
 
 **Waiting on others:**
