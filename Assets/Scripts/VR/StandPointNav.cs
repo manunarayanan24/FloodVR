@@ -107,7 +107,7 @@ namespace FloodVR
             beacon.transform.localScale = new Vector3(0.08f, 0.8f, 0.08f);
             Destroy(beacon.GetComponent<Collider>());
             var bbox = beacon.AddComponent<BoxCollider>(); // staring at the beam works too
-            bbox.size = new Vector3(5f, 2f, 5f);
+            bbox.size = new Vector3(15f, 3.75f, 15f); // ~1.2 m wide x 3 m tall gaze column (local scale 0.08/0.8/0.08); easier to hit across rooms crowded by new furniture
             Style(beacon, _beaconMat);
 
             // Floating name.
