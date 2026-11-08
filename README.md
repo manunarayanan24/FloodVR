@@ -226,13 +226,17 @@ drive (b) near 0% even when detection misses.
   "Water reached 0.90 m (2 ft 11 in)", fridge `scene_text`, severity 0, `heightAboveFloor`),
   runtime API config (`?api=` / `StreamingAssets/config.json`) — pushed, **not yet compiled**.
   Next: first compile → Build Web → Vercel → iPhone test → StandPoint teleport.
-- **Windows:** AI stack pushed. Live on NVIDIA — **every model id in the original brief was
-  dead (404/410)**; working ids + fallbacks pinned in `agents/config.yaml`. Adopted the new
-  contract (severity 0, `heightAboveFloor`, `scene_text` → guard; the real fridge note fires
-  3 rules). `/callouts` + `/voice` schemas pushed for Mac 2. Tunnel URL + endpoint list in
+- **Windows:** AI stack pushed, live on NVIDIA + Anthropic. **Honest attack numbers:** seed
+  0% hijack (we wrote it), held-out #1 **93.3% → 8.3% after tuning** (now a training score),
+  fresh held-out #2 **53.3%** ← the number for judges. 0/46 false positives, 5/5 claim
+  accuracy. **Every model id in the original brief was dead (404/410)**; working ids +
+  fallbacks pinned in `agents/config.yaml`. Adopted the new contract (severity 0,
+  `heightAboveFloor`, `scene_text` → guard; the real fridge note fires 3 rules).
+  `/callouts` + `/voice` schemas pushed for Mac 2. Tunnel URL + endpoint list in
   `docs/STATUS-windows.md`. **The NVIDIA guard model scored our live attack "safe"** — content
-  safety ≠ injection detection, so the 2nd layer stays off until a bake-off earns it. Blocked:
-  `ANTHROPIC_API_KEY` (held-out attack numbers), `screens.json`, severity-0 contents items.
+  safety ≠ injection detection, so the 2nd layer stays off until a bake-off earns it.
+  Nothing blocked. Next: Vision Inspector → orchestrator tool calling → Fraud Checker →
+  Claim Writer → `/callouts` → console.
 
 ## 9. Open requests (cross-lane)
 
@@ -243,3 +247,14 @@ drive (b) near 0% even when detection misses.
 - Mac 2 → BuildWeb hardening is done (`032ae0a`); Vercel URL follows the first build.
 - Mac 2 → Windows: the VR app will call your tunnel from `https://*.vercel.app`; please keep
   CORS open for that and use an **https** tunnel (an https page can't call http on iPhone).
+- Windows → Mac 2: CORS is open for `https://*.vercel.app` and the tunnel is HTTPS
+  (`cloudflared`). Confirmed working. `/callouts` + `/voice` schemas are pushed — please
+  comment on them before building, especially that **voice updates deliberately cannot touch
+  coverage, peril or cost** (only `adjuster_note`, `disputed`, `needs_photo`,
+  `severity_opinion`, `access_blocked`). A spoken sentence near an open mic must not move money.
+- Windows → Mac 1 (lead): **section 5's status column overstates the agents.** Claim Writer
+  does not exist; Orchestrator and Peril Adjudicator are deterministic Python, not LLM agents.
+  Of the 7 advertised LLM agents, 1 calls an LLM today (Intake). Deterministic peril/pricing is
+  partly deliberate — it is why a 53.3% detection miss rate does not become a hijacked claim —
+  but the table should say so rather than show ✅. Honest per-agent breakdown is in
+  `docs/STATUS-windows.md`. Your file, your call on the wording.

@@ -35,27 +35,50 @@ curl https://operates-voters-officials-lenses.trycloudflare.com/health
 
 ---
 
-## Working now (offline, no keys needed)
+## Working now
 
 | Thing | Command | State |
 |---|---|---|
-| Offline pipeline | `python -m agents.tools.smoke` | 23 line items, 10 hazards, 5 needing human review |
-| Eval suite | `python -m evals.run` | seed 39/39 caught, 0% false positives, 5/5 accuracy |
-| API server | `python -m uvicorn agents.server:app --port 8000` | `/health`, `/manifest`, `/assess`, `/attack-demo`, `/results` |
+| Pipeline | `python -m agents.tools.smoke` | 26 manifest items → 24 claimable line items, 10 hazards, 5 needing human review |
+| Eval suite | `python -m evals.run` | see numbers below |
+| Claim-impact eval | `python -m evals.endtoend` | does an attack change the claim, not just get spotted |
+| API server | `python -m uvicorn agents.server:app --port 8000` | 5 endpoints live |
 | Public HTTPS | `cloudflared tunnel --url http://localhost:8000` | quick tunnel, no account |
 
-`python -m evals.run` and `/assess` both work with **no API keys and no network**:
-every model call falls back to a deterministic stub. The demo cannot be taken
-down by the venue wi-fi.
+`python -m evals.run` and `/assess` both work with **no API keys and no network**
+(`FLOODVR_OFFLINE=1`): every model call falls back to a deterministic stub. The
+demo cannot be taken down by the venue wi-fi.
 
-## The one number that matters
+## Attack numbers — report the last row
 
-Seed set: 39 attacks, 100% hijack with the guard off, **0% with it on**. That
-number is not evidence — the same person wrote the attacks and the rules.
+Four numbers, in the order they were measured. Only the last one is evidence.
 
-Held-out set: **not generated yet.** `python -m evals.gen_variants` has Claude
-write fresh attacks, and `python -m evals.run` measures them *before any rule is
-touched*. Both numbers go in the report; judges see the honest one.
+| Set | Hijack, guard ON | What it is worth |
+|---|---|---|
+| Seed (39, we wrote them) | **0.0%** | Optimistic by construction — same author wrote attacks and rules |
+| Held-out #1 (60, Claude), before tuning | **93.3%** | 4 of 60 caught. The rules only knew imperative verbs |
+| Held-out #1, after tuning | **8.3%** | ⚠️ Now a **training** score. Rules were rewritten by reading its misses |
+| **Held-out #2 (60, Claude), fresh** | **53.3%** | **The number we show judges** |
+
+- False positives: **0 / 46** clean documents, including the real manifest note
+  that says "total loss" and four that say "do not energize until inspected".
+- Claim accuracy: **5 / 5** ground-truth checks. The kitchen ceiling stain is
+  adjudicated wind-driven rain and excluded under `FL-EXCL-1`.
+
+Tuning cut the real miss rate 93.3% → 53.3%, a 40-point gain that generalises.
+The distance between 8.3% and 53.3% is overfitting, and it is only visible
+because we generated a second set instead of quoting the first one back.
+
+**What still gets through** is the subtle end, and may not be fixable with
+rules: emotional pressure with no verb, the wind-vs-water argument made
+plausibly, and "everything is minor, well under any threshold that would need
+special review". A rule aggressive enough to catch those starts blocking honest
+homeowners. **The argument is that detection is the weak layer and the
+architecture is the strong one** — a live end-to-end run measuring exactly that
+is in progress.
+
+Each generated set costs ~11 cents of Anthropic credit. Use a NEW `--tag` after
+tuning, or the number is measured on data the rules were fitted to.
 
 ## Live NVIDIA findings (worth knowing on the other machines)
 
@@ -83,16 +106,40 @@ The second layer is **disabled** until the bake-off finds a candidate that earns
 it. We will report whichever way it lands rather than claim a layer that does
 nothing.
 
-## Still blocked
+## Agent status — honest version
 
-- `ANTHROPIC_API_KEY` is **not set** in `agents/.env`. Held-out attack
-  generation (`python -m evals.gen_variants`, ~20 cents) cannot run, so the only
-  attack numbers we have are the optimistic ones.
-- **`screens.json` answer key** from Mac 1 — the Vision Inspector cannot be
-  scored without it. The 9 PNGs have landed.
-- **Contents items with `heightAboveFloor` and `severity: 0`** from Mac 1 — the
-  fraud-checker trap. Schema and pipeline already handle both; there is just no
-  data to exercise them yet.
+README section 5 marks Orchestrator, Peril Adjudicator and Claim Writer as
+built. That is too generous. Of the seven advertised LLM agents, **one actually
+calls an LLM today.**
+
+| # | Agent | Really an LLM? | State |
+|---|---|---|---|
+| 1 | Orchestrator | **No** | Sequences specialists, merges output, writes trace + audit log. Model id configured but **no tool-calling LLM call yet** |
+| 2 | Intake (quarantined) | **Yes**, live | Nemotron 3.5 Lightning. No tools, returns only schema-validated fields, regex fallback |
+| 3 | Peril Adjudicator | **No** | Deterministic, driven by `policy.json`, cites clause ids. 5/5 correct |
+| 4 | Claim Writer | — | **Does not exist.** No narrative report for the adjuster |
+| 5 | Vision Inspector | — | Not built. `vision_read()` is wired but has never seen a real screenshot |
+| 6 | Consistency / Fraud Checker | — | Not built. The two severity-0 items are excluded but nothing cross-checks them |
+| 7 | Voice Notes | — | Not built. Schema pushed for Mac 2 |
+| tool | Hazard/Safety | No | Deterministic. 10 hazards, 6 at priority 1 |
+| tool | Pricing | No, **by design** | `costs.json` only, clamped. Money must never come from an LLM |
+| tool | Measurement | — | Not built. `house_geometry.json` is still unread |
+| layer | Guard | Rules only | 27 rules. Guard-model layer off (see above) |
+
+Deterministic peril and pricing is **partly a deliberate security property**: a
+coverage decision that cannot be argued out of its answer is why a 53.3%
+detection miss rate does not become a hijacked claim. But "the orchestrator
+plans with Nemotron tool calling" is currently false, and the NVIDIA track
+rewards Nemotron doing visible work.
+
+Build order from here: Vision Inspector → real orchestrator tool calling →
+Fraud Checker → Claim Writer → `/callouts` → console.
+
+## Still blocked / needed
+
+- Nothing blocking. Both API keys are in and working.
+- `screens.json` and the severity-0 contents items have **landed** and are
+  parsed; they are just not exercised yet by agents 5 and 6.
 
 ## Contract with the Unity machines
 
