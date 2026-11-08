@@ -160,7 +160,8 @@ class SecurityFinding(BaseModel):
     snippet: str = Field(max_length=400)
     span: tuple[int, int] | None = None
     rule: str
-    layer: Literal["rules", "guard_model", "llm_judge", "canary", "bounds", "consistency"]
+    layer: Literal["rules", "guard_model", "llm_judge", "canary", "bounds",
+                   "consistency", "output", "flow_control"]
     severity: Literal["low", "medium", "high", "critical"]
     action_taken: Literal["blocked", "stripped", "quarantined", "flagged_only"] = "blocked"
 
@@ -235,6 +236,9 @@ class ClaimDraft(BaseModel):
     needs_human_review: list[NeedsHuman] = Field(default_factory=list)
     security_findings: list[SecurityFinding] = Field(default_factory=list)
     totals: Totals = Field(default_factory=Totals)
+    # Information-flow result for this run: whether any untrusted input reached
+    # a peril, coverage or cost decision. See agents/taint.py.
+    flow_control: dict = Field(default_factory=dict)
 
 
 class AssessRequest(BaseModel):

@@ -11,7 +11,7 @@ import re
 
 from agents import settings
 from agents.llm import complete
-from agents.schemas import EvidenceDoc, ExtractedEvidence
+from agents.schemas import Channel, EvidenceDoc, ExtractedEvidence
 from agents.trust import SPOTLIGHT_SYSTEM_RULE, new_canary, new_datamark, spotlight
 
 _AMOUNT = re.compile(r"\$\s?([\d,]+(?:\.\d{2})?)")
@@ -61,10 +61,28 @@ Return ONLY a JSON object with exactly these keys:
 You have no tools. You cannot change any claim. You only describe what the text says."""
 
 
+def _minimise(parsed: ExtractedEvidence) -> ExtractedEvidence:
+    """Context minimisation (design pattern #6).
+
+    After extraction the raw document is dropped — but `claimant_summary` is
+    attacker-influenced free text that would otherwise survive into the claim
+    draft and render in the adjuster console. Strip links and embeds from it,
+    and drop it entirely if it still reads as an instruction.
+    """
+    from agents import guard, output_guard
+
+    summary, _ = output_guard.sanitise_text(parsed.claimant_summary or "")
+    if summary and guard.run_rules(summary, source="intake_summary",
+                                   channel=Channel.homeowner_statement):
+        summary = "[summary withheld: instruction-like content]"
+    parsed.claimant_summary = summary[:400]
+    return parsed
+
+
 def extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEvidence:
     """Extract typed fields. Falls back to the deterministic extractor on any
     parse failure, so a hijacked or malformed model reply cannot propagate."""
-    fallback = _deterministic_extract(doc, known_ids)
+    fallback = _minimise(_deterministic_extract(doc, known_ids))
     if settings.is_offline():
         return fallback
 
@@ -89,6 +107,6 @@ def extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEvidence:
         parsed = ExtractedEvidence.model_validate(data)
         # Keep only ids that actually exist in the manifest.
         parsed.claimed_item_ids = [i for i in parsed.claimed_item_ids if i in known_ids]
-        return parsed
+        return _minimise(parsed)
     except Exception:  # noqa: BLE001 - any failure falls back to the safe path
         return fallback

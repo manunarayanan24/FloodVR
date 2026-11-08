@@ -63,6 +63,19 @@ def main() -> int:
         print(f"  [{f.layer}/{f.severity}] {f.rule}")
         print(f"      {f.snippet[:110]!r}")
 
+    fc = draft.flow_control
+    print(f"\ninformation-flow check: {'CLEAN' if fc.get('clean') else 'VIOLATED'}")
+    print(f"  {fc.get('statement')}")
+    print(f"  decision fields checked : {fc.get('decision_fields_checked')}")
+    print(f"  untrusted inputs seen   : {fc.get('untrusted_inputs_seen')}")
+    for v in fc.get("violations", []):
+        print(f"  VIOLATION {v['field']} <- {v['source']}: {v['detail']}")
+
+    out_findings = [f for f in draft.security_findings if f.layer in ("output", "canary")]
+    print(f"\noutput-side findings ({len(out_findings)}):")
+    for f in out_findings:
+        print(f"  [{f.layer}/{f.severity}] {f.rule} -> {f.action_taken}")
+
     ok, msg = audit.verify_chain()
     print(f"\naudit chain: {'INTACT' if ok else 'BROKEN'} — {msg}")
     return 0

@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import time
 
-from agents import audit, guard, settings
+from agents import audit, guard, output_guard, settings
 from agents.pipeline import estimator, intake, peril, safety
 from agents.schemas import (
     AssessRequest, Channel, ClaimDraft, Coverage, LineItem, SecurityFinding,
-    TraceStep, Totals,
+    TraceStep, Totals, TrustLabel,
 )
+from agents.taint import Ledger
+from agents.trust import CHANNEL_TRUST, new_canary
 
 
 def _guard_text(
@@ -29,6 +31,18 @@ def assess(req: AssessRequest) -> ClaimDraft:
     trace: list[TraceStep] = []
     findings: list[SecurityFinding] = []
     started_all = time.perf_counter()
+    ledger = Ledger()
+    canary = new_canary(settings.config()["guard"]["canary_prefix"])
+
+    # Every untrusted input is remembered so the flow check can verify, at the
+    # end, that none of its text reached a decision. This is the empirical half
+    # of the IFC claim: declarations can lie, a substring check cannot.
+    for st in req.manifest.scene_text:
+        ledger.record_untrusted(f"scene_text:{st.id}", st.text)
+    for doc in req.evidence:
+        ledger.record_untrusted(f"evidence:{doc.doc_id}", doc.text)
+    if req.adjuster_notes:
+        ledger.record_untrusted("adjuster_notes", req.adjuster_notes)
 
     audit.append(run_id, "run_start", {
         "item_count": len(req.manifest.items),
@@ -131,6 +145,20 @@ def assess(req: AssessRequest) -> ClaimDraft:
         est, bound_findings = estimator.estimate_for(item)
         findings.extend(bound_findings)
 
+        # Declare what fed this decision. Peril comes from the manifest item
+        # (machine-generated) and the policy file (ours). Cost comes from the
+        # manifest item and the rate table. Evidence feeds NEITHER — it only
+        # ever lands in evidence_refs, which is display metadata.
+        for fld in ("peril", "coverage", "rationale", "confidence"):
+            ledger.record(f"line_items.{item.id}.{fld}",
+                          f"manifest:{item.id}", TrustLabel.machine)
+            ledger.record(f"line_items.{item.id}.{fld}",
+                          "contracts/policy.json", TrustLabel.trusted)
+        ledger.record(f"line_items.{item.id}.estimate",
+                      "contracts/costs.json", TrustLabel.trusted)
+        ledger.record(f"line_items.{item.id}.estimate",
+                      f"manifest:{item.id}", TrustLabel.machine)
+
         refs = [f"manifest:{item.id}", *evidence_by_item.get(item.id, [])]
         line_items.append(LineItem(
             item_id=item.id, label=item.label, peril=p, coverage=cov,
@@ -185,12 +213,45 @@ def assess(req: AssessRequest) -> ClaimDraft:
             action_taken="flagged_only",
         ))
 
+    for h in hazards:
+        ledger.record(f"hazards.{h.item_id}.action",
+                      f"manifest:{h.item_id}", TrustLabel.machine)
+
     draft = ClaimDraft(
         audit_trail_id=run_id, model_trace=trace, line_items=line_items,
         hazards=hazards, needs_human_review=needs_human, security_findings=findings,
         totals=totals,
     )
 
+    # ---- Output-side guard ------------------------------------------------
+    # Google's layered defence re-scans the response, not just the input:
+    # redact links and embeds, check the canary, re-run the rules on what we
+    # are about to return.
+    t0 = time.perf_counter()
+    draft = output_guard.scrub(draft, canary=canary)
+    out_findings = sum(1 for f in draft.security_findings if f.layer == "output")
+
+    # ---- Information-flow check ------------------------------------------
+    ledger.check_declarations()
+    ledger.check_text_leakage(output_guard.decision_blob(draft))
+    draft.flow_control = ledger.summary()
+    for v in ledger.violations:
+        draft.security_findings.append(SecurityFinding(
+            source=v.source, channel=Channel.vlm_output,
+            snippet=v.detail[:400], rule="FLOW_untrusted_reached_decision",
+            layer="flow_control", severity="critical", action_taken="flagged_only",
+        ))
+
+    trace.append(TraceStep(
+        agent="output_guard+flow_control", model="deterministic",
+        ms=(time.perf_counter() - t0) * 1000,
+        note=f"{out_findings} output finding(s); flow "
+             f"{'CLEAN' if ledger.clean else 'VIOLATED'} across "
+             f"{len(ledger.entries)} decision fields vs "
+             f"{len(ledger.untrusted_texts)} untrusted input(s)",
+    ))
+
+    audit.append(run_id, "flow_control", ledger.summary())
     audit.append(run_id, "claim_draft", {
         "totals": totals.model_dump(mode="json"),
         "line_item_count": len(line_items),
