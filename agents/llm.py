@@ -73,6 +73,7 @@ _last_call_at = 0.0
 # empty answer with finish_reason "stop", which looks exactly like a broken
 # model. Never send less than this.
 _MIN_MAX_TOKENS = 512
+MIN_CALL_S = 2.0  # do not start a call with less time than this left in the budget
 
 
 def _throttle() -> None:
@@ -92,11 +93,15 @@ def nvidia_chat(
     max_tokens: int = 2048,
     temperature: float = 0.2,
     extra_body: dict[str, Any] | None = None,
+    deadline: float | None = None,
 ) -> Completion:
     """One chat completion against NVIDIA's OpenAI-compatible endpoint.
 
     `extra_body={"chat_template_kwargs": {"enable_thinking": False}}` turns off
     Nemotron 3.5 reasoning for prose tasks (sub-second instead of a budget burn).
+    `deadline` (a time.perf_counter() value): never run past it. The SDK's own
+    retries are turned off and each try gets only the time that is left;
+    raises TimeoutError when the budget is spent.
     """
     entry = settings.model(role)
     mid = model_id or entry["id"]
@@ -118,14 +123,23 @@ def nvidia_chat(
     resp = None
     for attempt in range(attempts):
         _throttle()
+        call = client
+        if deadline is not None:
+            left = deadline - time.perf_counter()
+            if left < MIN_CALL_S:
+                raise TimeoutError("time budget spent")
+            call = client.with_options(timeout=min(left, client.timeout), max_retries=0)
         try:
-            resp = client.chat.completions.create(**kwargs)
+            resp = call.chat.completions.create(**kwargs)
             break
         except Exception as exc:  # noqa: BLE001
             transient = any(code in str(exc) for code in ("403", "429", "503", "timed out"))
             if not transient or attempt == attempts - 1:
                 raise
-            time.sleep(1.5 * (attempt + 1))
+            wait = 1.5 * (attempt + 1)
+            if deadline is not None and deadline - time.perf_counter() < wait + MIN_CALL_S:
+                raise
+            time.sleep(wait)
     assert resp is not None
 
     ms = (time.perf_counter() - started) * 1000

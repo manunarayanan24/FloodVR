@@ -179,7 +179,10 @@ def _template(f: dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
-def write(draft: ClaimDraft, untrusted_texts: dict[str, str] | None = None) -> dict[str, Any]:
+def write(draft: ClaimDraft, untrusted_texts: dict[str, str] | None = None,
+          deadline: float | None = None) -> dict[str, Any]:
+    """`deadline` (time.perf_counter() value): if Nemotron can't finish by then,
+    the number-checked template is used instead."""
     f = facts(draft)
     t0 = time.perf_counter()
     text, model, source, attempts, check = "", "template", "template", 0, None
@@ -191,7 +194,8 @@ def write(draft: ClaimDraft, untrusted_texts: dict[str, str] | None = None) -> d
         for attempts in (1, 2):
             try:
                 comp = nvidia_chat("orchestrator", messages, max_tokens=1200, temperature=0.2,
-                                   extra_body={"chat_template_kwargs": {"enable_thinking": False}})
+                                   extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+                                   deadline=deadline)
             except Exception:  # noqa: BLE001 - template below
                 break
             cand = comp.text.strip()

@@ -32,6 +32,8 @@ from agents.schemas import AssessRequest, ClaimDraft, TraceStep
 MAX_TURNS = 10
 RATE_LIMIT_RETRIES = 4   # per model, on 429/403/503 only
 BACKOFF_S = 2.0          # 2, 4, 8, 16 s
+PLANNER_BUDGET_S = 25.0  # hard cap on planning; then fixed order (same claim)
+MIN_TURN_S = 3.0         # don't start an LLM turn with less than this left
 
 _SYSTEM = """You are the orchestrator of a flood-insurance claim assessment. You plan by calling tools, one or more per turn, and you see only counts and status flags.
 
@@ -87,7 +89,7 @@ def _initial_brief(req: AssessRequest) -> str:
     })
 
 
-def assess_planned(req: AssessRequest) -> ClaimDraft:
+def assess_planned(req: AssessRequest, budget_s: float | None = None) -> ClaimDraft:
     run = Run(req)
     if settings.is_offline() or not settings.has_key("nvidia"):
         draft = run.finalize()
@@ -113,29 +115,51 @@ def assess_planned(req: AssessRequest) -> ClaimDraft:
     finished = False
     turns = 0
 
+    # Hard time budget: the tunnel (Cloudflare) cuts requests at 100 s. When the
+    # budget is spent we stop planning; finalize() runs the remaining stages in
+    # fixed order, so the claim is identical either way.
+    deadline = t0 + float(budget_s if budget_s is not None else PLANNER_BUDGET_S)
+    budget_hit = False
+
+    def _left() -> float:
+        return deadline - time.perf_counter()
+
+    models = [entry["id"], *entry.get("fallback_ids", [])]
+
     try:
         for turns in range(1, MAX_TURNS + 1):
+            if _left() < MIN_TURN_S:
+                budget_hit = True
+                break
             resp = None
-            for mid in [entry["id"], *entry.get("fallback_ids", [])]:
-                # Rate limits (429/403/503) are transient: back off and retry the
-                # same model before moving on. Anything else -> next model.
-                for attempt in range(RATE_LIMIT_RETRIES + 1):
+            # A rate-limited model (429/403/503) is busy, not broken: try the next
+            # served model right away, and back off only once every model is busy.
+            # Any other error drops that model for this run.
+            for attempt in range(RATE_LIMIT_RETRIES + 1):
+                for mid in list(models):
+                    if _left() < MIN_TURN_S:
+                        budget_hit = True
+                        break
                     try:
                         _throttle()
-                        resp = client.chat.completions.create(
+                        call = client.with_options(timeout=max(1.0, _left()), max_retries=0)
+                        resp = call.chat.completions.create(
                             model=mid, messages=messages, tools=tools, tool_choice="auto",
                             max_tokens=2048, temperature=0.0,
                         )
                         model_used = mid
                         break
-                    except Exception as exc:  # noqa: BLE001 - retry or try the next model
+                    except Exception as exc:  # noqa: BLE001 - next model, or back off
                         errors.append(f"{mid}: {str(exc)[:120]}")
-                        transient = any(c in str(exc) for c in ("429", "403", "503", "timed out"))
-                        if not transient or attempt == RATE_LIMIT_RETRIES:
-                            break
-                        time.sleep(BACKOFF_S * (2 ** attempt))
-                if resp is not None:
+                        if not any(c in str(exc) for c in ("429", "403", "503", "timed out")):
+                            models.remove(mid)
+                if resp is not None or budget_hit or not models:
                     break
+                wait = BACKOFF_S * (2 ** attempt)
+                if _left() < wait + MIN_TURN_S:
+                    budget_hit = True
+                    break
+                time.sleep(wait)
             if resp is None:
                 break
             msg = resp.choices[0].message
@@ -187,12 +211,15 @@ def assess_planned(req: AssessRequest) -> ClaimDraft:
     note = (f"Nemotron planned {len(called)} tool call(s) in {turns} turn(s)"
             + (f"; enforced skipped stage(s): {', '.join(run.enforced)}" if run.enforced else "")
             + (f"; {len(errors)} provider error(s), fell back to fixed order" if errors and not called else "")
+            + (f"; time budget ({deadline - t0:.0f} s) reached, remaining stages ran in fixed order"
+               if budget_hit else "")
             + ("" if finished else "; planner did not call finalize_draft"))
     draft.model_trace.insert(0, TraceStep(
         agent="orchestrator", model=model_used, ms=planner_ms, tool_calls=called, note=note))
     audit.append(run.run_id, "planner", {
         "model": model_used, "tool_calls": called, "turns": turns,
-        "enforced": run.enforced, "errors": errors[:5],
+        "enforced": run.enforced, "errors": errors[:5], "budget_hit": budget_hit,
+        "planner_ms": round(planner_ms),
         "transcript_clean": leaked == 0,
     })
     return draft

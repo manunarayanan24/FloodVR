@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -20,6 +21,8 @@ from agents.pipeline.orchestrator import assess
 from agents.schemas import (
     AssessRequest, AttackDemoRequest, Channel, ClaimDraft, DamageManifest,
 )
+
+ASSESS_BUDGET_S = 55.0  # whole /assess, well under the tunnel's 100 s cutoff
 
 app = FastAPI(
     title="FloodVR claim agents",
@@ -65,17 +68,21 @@ def assess_endpoint(req: AssessRequest, planner: str = "llm", report: bool = Tru
     """`planner=llm` (default): Nemotron orders the stages with tool calls.
     `planner=fixed`: fixed order. The claim is identical; only the trace differs.
     `report=true` (default): the Claim Writer adds `adjuster_report` (number-checked)."""
+    # Hard time budget for the whole request (Cloudflare cuts the tunnel at 100 s):
+    # the planner gets PLANNER_BUDGET_S, the writer whatever is left of
+    # ASSESS_BUDGET_S, then falls back to its template. The claim never changes.
+    t_start = time.perf_counter()
     try:
         if planner == "llm":
-            from agents.pipeline.planner import assess_planned
-            draft = assess_planned(req)
+            from agents.pipeline.planner import PLANNER_BUDGET_S, assess_planned
+            draft = assess_planned(req, budget_s=PLANNER_BUDGET_S)
         else:
             draft = assess(req)
         if report:
             from agents.pipeline.writer import write
             untrusted = {f"evidence:{d.doc_id}": d.text for d in req.evidence}
             untrusted.update({f"scene_text:{s.id}": s.text for s in req.manifest.scene_text})
-            draft.adjuster_report = write(draft, untrusted)
+            draft.adjuster_report = write(draft, untrusted, deadline=t_start + ASSESS_BUDGET_S)
         if req.guard_enabled:
             _LAST.update(draft=draft, manifest=req.manifest)  # headset shows the latest run
         return draft
