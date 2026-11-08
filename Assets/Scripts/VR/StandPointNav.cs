@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -21,6 +22,9 @@ namespace FloodVR
         Transform _head;
         Transform _current;
         Material _discMat, _beaconMat;
+        bool _moving;
+        Material _fadeMat;
+        GameObject _fade;
         Transform _holder; // markers must NOT be children of the rig, or they'd travel with it
 
         void Start()
@@ -29,6 +33,19 @@ namespace FloodVR
             _head = look != null ? look.transform : transform;
 
             _holder = new GameObject("StandMarkers").transform;
+            // Black quad just in front of the eyes, used to dim the view during a glide (comfort + hides walls).
+            _fadeMat = MakeMat(new Color(0f, 0f, 0f, 0f));
+            _fade = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            _fade.name = "GlideFade";
+            Destroy(_fade.GetComponent<Collider>());
+            _fade.transform.SetParent(_head, false);
+            _fade.transform.localPosition = new Vector3(0f, 0f, 0.25f);
+            _fade.transform.localScale = new Vector3(1.6f, 1.6f, 1f);
+            var fr = _fade.GetComponent<Renderer>();
+            fr.sharedMaterial = _fadeMat;
+            fr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            fr.receiveShadows = false;
+            _fade.SetActive(false);
             _discMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.55f));
             _beaconMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.28f));
 
@@ -120,12 +137,34 @@ namespace FloodVR
             r.receiveShadows = false;
         }
 
+        // Glides to the StandPoint (about 1-2 s, view dims in the middle so it is comfortable and
+        // never shows the camera passing through walls). Keeps the current heading.
         public void GoTo(Transform stand)
         {
-            if (stand == null) return;
+            if (stand == null || _moving) return;
+            StartCoroutine(Glide(stand));
+        }
+
+        IEnumerator Glide(Transform stand)
+        {
+            _moving = true;
+            Vector3 from = transform.position;
             Vector3 p = stand.position;
-            transform.position = new Vector3(p.x, Mathf.Max(0f, p.y - EyeHeight), p.z); // keep heading
+            Vector3 to = new Vector3(p.x, Mathf.Max(0f, p.y - EyeHeight), p.z);
+            float dur = Mathf.Clamp(Vector3.Distance(from, to) / 3.2f, 0.9f, 2.4f);
+            foreach (var e in _entries) e.root.SetActive(false); // markers off while moving
+            _fade.SetActive(true);
+            for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / dur)
+            {
+                float s = t * t * (3f - 2f * t); // smoothstep
+                transform.position = Vector3.Lerp(from, to, s);
+                _fadeMat.color = new Color(0f, 0f, 0f, Mathf.Sin(t * Mathf.PI) * 0.92f);
+                yield return null;
+            }
+            transform.position = to;
+            _fade.SetActive(false);
             SetCurrent(stand);
+            _moving = false;
             if (OnMoved != null) OnMoved(stand.name);
         }
 
