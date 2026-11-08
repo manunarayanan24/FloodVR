@@ -91,8 +91,13 @@ def nvidia_chat(
     tools: list[dict] | None = None,
     max_tokens: int = 2048,
     temperature: float = 0.2,
+    extra_body: dict[str, Any] | None = None,
 ) -> Completion:
-    """One chat completion against NVIDIA's OpenAI-compatible endpoint."""
+    """One chat completion against NVIDIA's OpenAI-compatible endpoint.
+
+    `extra_body={"chat_template_kwargs": {"enable_thinking": False}}` turns off
+    Nemotron 3.5 reasoning for prose tasks (sub-second instead of a budget burn).
+    """
     entry = settings.model(role)
     mid = model_id or entry["id"]
     client = _nvidia_client()
@@ -105,6 +110,8 @@ def nvidia_chat(
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = "auto"
+    if extra_body:
+        kwargs["extra_body"] = extra_body
 
     started = time.perf_counter()
     attempts = int(settings.config()["runtime"]["max_retries"]) + 1

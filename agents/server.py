@@ -59,14 +59,22 @@ def manifest() -> dict:
 
 
 @app.post("/assess", response_model=ClaimDraft)
-def assess_endpoint(req: AssessRequest, planner: str = "llm") -> ClaimDraft:
+def assess_endpoint(req: AssessRequest, planner: str = "llm", report: bool = True) -> ClaimDraft:
     """`planner=llm` (default): Nemotron orders the stages with tool calls.
-    `planner=fixed`: fixed order. The claim is identical; only the trace differs."""
+    `planner=fixed`: fixed order. The claim is identical; only the trace differs.
+    `report=true` (default): the Claim Writer adds `adjuster_report` (number-checked)."""
     try:
         if planner == "llm":
             from agents.pipeline.planner import assess_planned
-            return assess_planned(req)
-        return assess(req)
+            draft = assess_planned(req)
+        else:
+            draft = assess(req)
+        if report:
+            from agents.pipeline.writer import write
+            untrusted = {f"evidence:{d.doc_id}": d.text for d in req.evidence}
+            untrusted.update({f"scene_text:{s.id}": s.text for s in req.manifest.scene_text})
+            draft.adjuster_report = write(draft, untrusted)
+        return draft
     except LLMUnavailable as exc:
         raise HTTPException(503, f"model unavailable: {exc}") from exc
 

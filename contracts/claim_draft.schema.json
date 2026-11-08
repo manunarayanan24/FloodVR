@@ -5,8 +5,14 @@
   "description": "Output of POST /assess. A DRAFT: agents never approve payment, a human adjuster does.",
   "type": "object",
   "required": [
-    "audit_trail_id", "status", "generated_at", "line_items",
-    "hazards", "needs_human_review", "security_findings", "totals"
+    "audit_trail_id",
+    "status",
+    "generated_at",
+    "line_items",
+    "hazards",
+    "needs_human_review",
+    "security_findings",
+    "totals"
   ],
   "additionalProperties": false,
   "properties": {
@@ -19,19 +25,39 @@
       "const": "draft_pending_human",
       "description": "Constant by design. There is no code path that sets an approved status."
     },
-    "generated_at": { "type": "string", "format": "date-time" },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "model_trace": {
       "type": "array",
       "description": "Which agent ran, on which model, and how long it took.",
       "items": {
         "type": "object",
-        "required": ["agent", "model", "ms"],
+        "required": [
+          "agent",
+          "model",
+          "ms"
+        ],
         "properties": {
-          "agent": { "type": "string" },
-          "model": { "type": "string" },
-          "ms": { "type": "number" },
-          "tool_calls": { "type": "array", "items": { "type": "string" } },
-          "note": { "type": "string" }
+          "agent": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "ms": {
+            "type": "number"
+          },
+          "tool_calls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string"
+          }
         }
       }
     },
@@ -39,19 +65,42 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["item_id", "label", "peril", "coverage", "estimate", "confidence", "evidence_refs"],
+        "required": [
+          "item_id",
+          "label",
+          "peril",
+          "coverage",
+          "estimate",
+          "confidence",
+          "evidence_refs"
+        ],
         "additionalProperties": false,
         "properties": {
-          "item_id": { "type": "string" },
-          "label": { "type": "string" },
+          "item_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
           "peril": {
             "type": "string",
-            "enum": ["flood", "wind_driven_rain", "both", "structural", "undetermined"],
+            "enum": [
+              "flood",
+              "wind_driven_rain",
+              "both",
+              "structural",
+              "undetermined"
+            ],
             "description": "wind_driven_rain is the contested one. Above the waterline implies wind, not flood."
           },
           "coverage": {
             "type": "string",
-            "enum": ["flood_policy", "homeowners_policy", "excluded", "needs_human"],
+            "enum": [
+              "flood_policy",
+              "homeowners_policy",
+              "excluded",
+              "needs_human"
+            ],
             "description": "Which policy pays. 'excluded' must carry an exclusion_ref."
           },
           "exclusion_ref": {
@@ -60,11 +109,21 @@
           },
           "estimate": {
             "type": "object",
-            "required": ["low_usd", "high_usd", "source"],
+            "required": [
+              "low_usd",
+              "high_usd",
+              "source"
+            ],
             "additionalProperties": false,
             "properties": {
-              "low_usd": { "type": "number", "minimum": 0 },
-              "high_usd": { "type": "number", "minimum": 0 },
+              "low_usd": {
+                "type": "number",
+                "minimum": 0
+              },
+              "high_usd": {
+                "type": "number",
+                "minimum": 0
+              },
               "source": {
                 "type": "string",
                 "const": "contracts/costs.json",
@@ -72,13 +131,21 @@
               }
             }
           },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
           "evidence_refs": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "e.g. manifest:hazard_outlet_closet, evidence:homeowner_statement"
           },
-          "rationale": { "type": "string" }
+          "rationale": {
+            "type": "string"
+          }
         }
       }
     },
@@ -86,22 +153,46 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["item_id", "hazard_type", "priority", "action", "dispatch"],
+        "required": [
+          "item_id",
+          "hazard_type",
+          "priority",
+          "action",
+          "dispatch"
+        ],
         "additionalProperties": false,
         "properties": {
-          "item_id": { "type": "string" },
+          "item_id": {
+            "type": "string"
+          },
           "hazard_type": {
             "type": "string",
-            "enum": ["electrical", "gas_co", "mold_airquality", "structural", "contamination"]
+            "enum": [
+              "electrical",
+              "gas_co",
+              "mold_airquality",
+              "structural",
+              "contamination"
+            ]
           },
           "priority": {
-            "type": "integer", "minimum": 1, "maximum": 5,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
             "description": "1 = dispatch before re-entry."
           },
-          "action": { "type": "string" },
+          "action": {
+            "type": "string"
+          },
           "dispatch": {
             "type": "string",
-            "enum": ["licensed_electrician", "gas_utility", "structural_engineer", "remediation_contractor", "none"]
+            "enum": [
+              "licensed_electrician",
+              "gas_utility",
+              "structural_engineer",
+              "remediation_contractor",
+              "none"
+            ]
           }
         }
       }
@@ -110,11 +201,18 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["item_id", "reason"],
+        "required": [
+          "item_id",
+          "reason"
+        ],
         "additionalProperties": false,
         "properties": {
-          "item_id": { "type": "string" },
-          "reason": { "type": "string" }
+          "item_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
         }
       }
     },
@@ -123,41 +221,140 @@
       "description": "Every blocked injection. This is what the adjuster console highlights.",
       "items": {
         "type": "object",
-        "required": ["source", "channel", "snippet", "rule", "layer", "severity"],
+        "required": [
+          "source",
+          "channel",
+          "snippet",
+          "rule",
+          "layer",
+          "severity"
+        ],
         "additionalProperties": false,
         "properties": {
-          "source": { "type": "string", "description": "e.g. evidence:fridge_note_ocr" },
+          "source": {
+            "type": "string",
+            "description": "e.g. evidence:fridge_note_ocr"
+          },
           "channel": {
             "type": "string",
-            "enum": ["manifest_note", "homeowner_statement", "receipt", "contractor_estimate", "scene_ocr", "vlm_output", "filename_metadata", "adjuster_notes"]
+            "enum": [
+              "manifest_note",
+              "homeowner_statement",
+              "receipt",
+              "contractor_estimate",
+              "scene_ocr",
+              "vlm_output",
+              "filename_metadata",
+              "adjuster_notes"
+            ]
           },
-          "snippet": { "type": "string", "description": "The exact offending span, for highlighting." },
+          "snippet": {
+            "type": "string",
+            "description": "The exact offending span, for highlighting."
+          },
           "span": {
             "type": "array",
-            "items": { "type": "integer" },
-            "minItems": 2, "maxItems": 2,
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2,
             "description": "[start, end) character offsets into the original text."
           },
-          "rule": { "type": "string", "description": "Rule id or guard model verdict, e.g. R07_payment_language." },
-          "layer": { "type": "string", "enum": ["rules", "guard_model", "llm_judge", "canary", "bounds"] },
-          "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "rule": {
+            "type": "string",
+            "description": "Rule id or guard model verdict, e.g. R07_payment_language."
+          },
+          "layer": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "guard_model",
+              "llm_judge",
+              "canary",
+              "bounds"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
           "action_taken": {
             "type": "string",
-            "enum": ["blocked", "stripped", "quarantined", "flagged_only"]
+            "enum": [
+              "blocked",
+              "stripped",
+              "quarantined",
+              "flagged_only"
+            ]
           }
         }
       }
     },
     "totals": {
       "type": "object",
-      "required": ["low_usd", "high_usd", "item_count"],
+      "required": [
+        "low_usd",
+        "high_usd",
+        "item_count"
+      ],
       "additionalProperties": false,
       "properties": {
-        "low_usd": { "type": "number", "minimum": 0 },
-        "high_usd": { "type": "number", "minimum": 0 },
-        "item_count": { "type": "integer", "minimum": 0 },
-        "flood_policy_usd": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
-        "homeowners_policy_usd": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+        "low_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "high_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flood_policy_usd": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "homeowners_policy_usd": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "flow_control": {
+      "type": "object",
+      "description": "Information-flow result: decision fields checked, untrusted inputs seen, clean flag, violations; planner_transcript_clean when the Nemotron planner ran."
+    },
+    "adjuster_report": {
+      "type": "object",
+      "description": "Claim Writer output (display only, never feeds a decision). Keys: text, source (llm|template), model, attempts, ms, number_check {numbers_checked, unsupported[], ok}, llm_numbers_rejected, output_guard_removed, untrusted_text_leaked. Empty when /assess?report=false.",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "llm",
+            "template"
+          ]
+        },
+        "number_check": {
+          "type": "object"
+        }
       }
     }
   }

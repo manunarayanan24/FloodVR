@@ -239,6 +239,9 @@ class ClaimDraft(BaseModel):
     # Information-flow result for this run: whether any untrusted input reached
     # a peril, coverage or cost decision. See agents/taint.py.
     flow_control: dict = Field(default_factory=dict)
+    # Claim Writer output (display only, never feeds a decision). Empty unless
+    # requested. See agents/pipeline/writer.py.
+    adjuster_report: dict = Field(default_factory=dict)
 
 
 class AssessRequest(BaseModel):
