@@ -229,6 +229,16 @@ async def entrypoint(ctx) -> None:
     from livekit.agents.voice import room_io
     await session.start(room=ctx.room, agent=Agent(instructions="FloodVR voice relay"),
                         room_options=room_io.RoomOptions(close_on_disconnect=False))
+    # Two agents in one room would answer every question twice. If another agent
+    # is here and sorts before us, leave (exactly one of any pair leaves).
+    await asyncio.sleep(2.5)
+    me = ctx.room.local_participant.identity
+    older = [p for p in ctx.room.remote_participants.values()
+             if p.kind == rtc.ParticipantKind.PARTICIPANT_KIND_AGENT and p.identity < me]
+    if older:
+        log.info("voice: duplicate agent (%s is already here); leaving", older[0].identity)
+        ctx.shutdown(reason="duplicate agent")
+        return
     echo["last_reply"] = "FloodVR voice ready. Ask me anything."
     session.say(echo["last_reply"], allow_interruptions=False)
 

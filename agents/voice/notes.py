@@ -376,7 +376,9 @@ def route(text: str, gaze: str | None, draft: ClaimDraft | None,
     if _RX["injection"].search(text):
         notes_ = manifest.scene_text if manifest else []
         blocked = sum(1 for f in draft.security_findings if f.action_taken == "blocked")
-        return ("Yes. A note in the scene is written to the AI, not to you: it tries to change the claim. "
+        yes_no = bool(re.match(r"\s*(was|is|did|does|are|were|has|have|do|had)\b", text, re.I))
+        return (("Yes. A" if yes_no else "The") + " note in the scene is written to the AI, not to you: "
+                "it tries to change the claim. "
                 f"The guard blocked it, it changed nothing, and it is logged"
                 + (f" ({blocked} blocked findings)." if blocked else "."),
                 [f"scene_text:{n.id}" for n in notes_] or ["claim:security_findings"])

@@ -71,6 +71,31 @@ def _twirp(service: str, method: str, body: dict, video: dict) -> dict:
         return json.loads(r.read() or b"{}")
 
 
+STARTING_S = 90  # a dispatch younger than this, not yet finished, counts as "agent starting"
+
+
+def _dispatch_starting(room: str, admin: dict) -> bool:
+    """True if our agent was dispatched to this room recently and has not finished."""
+    try:
+        d = _twirp("AgentDispatchService", "ListDispatch", {"room": room}, admin)
+    except Exception:  # noqa: BLE001 - unknown: treat as not starting
+        return False
+    now_ns = time.time_ns()
+    for x in d.get("agent_dispatches", d.get("agentDispatches", [])):
+        if x.get("agent_name", x.get("agentName")) != AGENT_NAME:
+            continue
+        st = x.get("state", {})
+        created = int(st.get("created_at", st.get("createdAt")) or 0)
+        age_s = (now_ns - created) / 1e9 if created else 1e9
+        if age_s > STARTING_S:
+            continue
+        jobs = st.get("jobs", [])
+        if not jobs or any(str(j.get("state", {}).get("status", "")) in ("JS_PENDING", "JS_RUNNING")
+                           for j in jobs):
+            return True
+    return False
+
+
 def ensure_agent(room: str = ROOM) -> str:
     """If the room already exists (roomConfig only fires on creation), make sure
     our agent is dispatched to it. Returns what happened; never raises."""
@@ -88,6 +113,11 @@ def ensure_agent(room: str = ROOM) -> str:
                 return "agent already in room"
         except Exception:  # noqa: BLE001 - room may be mid-teardown; dispatch anyway
             pass
+        # An agent that was dispatched a moment ago has not joined yet: a second
+        # dispatch here (another phone, or the client's retry) would put TWO agents
+        # in the room and every answer would be spoken twice.
+        if _dispatch_starting(room, admin):
+            return "agent is starting"
         _twirp("AgentDispatchService", "CreateDispatch",
                {"room": room, "agent_name": AGENT_NAME}, admin)
         return "agent dispatched to existing room"
