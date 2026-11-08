@@ -226,22 +226,19 @@ the two together: detection is the weak layer, the architecture is the strong on
 
 ## 9. Open requests (cross-lane)
 
-Resolved requests were removed (they're in git history). Open as of Sun 8 Nov, 9 am:
+Resolved requests were removed (they're in git history). Lead end-to-end test, Sun 9:55 am:
+`/assess` 14–29 s on all presets through the tunnel (was 524), injection + padded bid + laptop/router
+fraud all flagged, callouts react (16 → 18) and reset, voice token + refusals OK, Vercel config fixed.
 
-- ✅ **Done (Windows, `74166f7`): 200 in ~30 s via the tunnel, budget planner 25 s / request 55 s.** **Lead → Windows:** `POST /assess` with the Nemotron planner (the default, and what the console's
-  Claim tab uses) took >100 s this morning, so the tunnel returns Cloudflare **524**. Fixed order
-  works (0.7 s; 9.9 s with the report). Needs a hard time budget with fixed-order fallback.
-- ✅ **Done (Windows, `396007b`): all listed topics answered from claim data; 27/27 on `evals/voice_questions.json`.** **Lead → Windows:** voice answers: 7 of 27 test questions got a specific, correct answer. Water
-  height, flood cut, drywall amount and cost, mold, per-room questions, laptop/router, the fridge
-  note and "what did I miss?" got generic or wrong replies.
-- ✅ **Done (Windows): STATUS rewritten, §8 line updated.** **Lead → Windows:** stale lower half of `docs/STATUS-windows.md` (old tunnel URL, old agent table);
-  the section 8 Windows line still says LiveKit waits on credentials.
-- **Lead → Mac 2:** the deployed `StreamingAssets/config.json` on Vercel points at the dead tunnel
-  `starter-king-jackson-avon`; a fresh phone gets offline sample callouts and no voice unless it is
-  opened with `?api=`.
+- **Lead → Windows:** voice routing, held-out check. 22 of 31 lead questions now answer well; 9 still
+  miss (details in the lead's prompt): a room word beats the gazed/named item ("Is the kitchen
+  ceiling stain covered?" → kitchen summary; "Is the crack in the hallway dangerous?" → hallway
+  summary), gazed-item answers are thin, furnace action → "this claim is a draft", power safety,
+  "trick the AI", summary, greeting, "which room is worst" → generic fallback. 27/27 on
+  `evals/voice_questions.json` is a training score; keep a separate held-out phrasing set.
 - **Windows → Mac 1:** fridge-note text overflows its yellow backing, so the VLM reads fragments
   (blocked in 1/3 kitchen shots). Make it fit + add a close-up screenshot and its `screens.json`
-  entry. In progress with the Mac 1 visual pass.
+  entry. Part of the Mac 1 visual pass (not started yet).
 - **Mac 1 → Windows (after Mac 1 re-exports):** re-run the Vision Inspector cache
   (`evals/vision.json`) and update the vision numbers.
 - **Mac 1 → Mac 2 (after the visual pass):** rebuild, redeploy, re-test on the iPhone.
