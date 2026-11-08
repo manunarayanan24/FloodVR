@@ -231,7 +231,9 @@ def voice_token() -> dict:
     from agents.voice import token
     if not token.configured():
         raise HTTPException(503, "LiveKit not configured on the server; use POST /voice (text) instead")
-    return token.mint()
+    out = token.mint()
+    out["agent"] = token.ensure_agent(out["room"])
+    return out
 
 
 @app.get("/measurements")

@@ -108,6 +108,10 @@ def _llm_classify(text: str, gaze: str | None, known: set[str]) -> dict[str, Any
             "classifier": comp.model}
 
 
+def _safe_label(text: str) -> str:
+    return re.sub(r"[^A-Za-z0-9 ,.'/()-]", "", str(text).replace("_", " "))[:60] or "an item"
+
+
 def _answer(topic: str, item_id: str | None, draft: ClaimDraft | None,
             manifest: DamageManifest | None) -> tuple[str, list[str]]:
     """Template answer from structured data. Never LLM text."""
@@ -121,8 +125,30 @@ def _answer(topic: str, item_id: str | None, draft: ClaimDraft | None,
     if topic == "measurement" or (item_id == "waterline_band"):
         wl = settings.waterline_m()
         return (f"Water reached {wl:.2f} meters.", ["geometry:waterlineHeight"])
+    if item_id is None and topic == "hazard":
+        # House-wide: the top hazards by priority, template text only.
+        top = sorted(draft.hazards, key=lambda h: h.priority)[:3]
+        if not top:
+            return ("No safety hazards are recorded in this house.", ["claim:hazards"])
+        names = {i.id: i.label for i in (manifest.items if manifest else [])}
+        kinds = {"gas_co": "gas and carbon monoxide"}
+        parts = [f"{_safe_label(names.get(h.item_id, h.item_id))}, "
+                 f"{kinds.get(h.hazard_type, h.hazard_type.replace('_', ' '))}" for h in top]
+        more = len(draft.hazards) - len(top)
+        return (f"{len(draft.hazards)} hazard{'s' if len(draft.hazards) != 1 else ''}. "
+                f"Most urgent: {'; '.join(parts)}." + (f" Plus {more} more." if more > 0 else ""),
+                [f"hazard:{h.item_id}" for h in top])
+    if item_id is None and topic == "coverage":
+        c = {k: sum(1 for x in draft.line_items if x.coverage.value == k)
+             for k in ("flood_policy", "homeowners_policy", "excluded", "needs_human")}
+        return (f"{c['flood_policy']} items under the flood policy, {c['homeowners_policy']} under "
+                f"homeowners, {c['excluded']} excluded, {c['needs_human']} need your review. "
+                f"Look at an item for its reason.", ["claim:line_items"])
     if item_id is None:
         t = draft.totals
+        if topic == "cost":
+            return (f"The whole claim is estimated at {t.low_usd:,.0f} to {t.high_usd:,.0f} "
+                    f"dollars.", ["claim:totals"])
         return (f"Look at an item and ask again. The whole claim is estimated at "
                 f"{t.low_usd:,.0f} to {t.high_usd:,.0f} dollars.", ["claim:totals"])
     label = (li.label if li else item_id.replace("_", " "))[:60]

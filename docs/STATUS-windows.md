@@ -36,7 +36,7 @@ Protected files untouched: `agents/output_guard.py`, `agents/taint.py`, guard ru
 
 - **Reliability finding (planner eval):** NVIDIA returned **HTTP 429 on the orchestrator model in 50/120 runs**, and both configured fallbacks (`llama-3.1-nemotron-ultra-253b-v1`, `llama-3.1-nemotron-70b-instruct`) now **404**. Those runs fell back to the fixed order (claim identical, gate unaffected) — so Nemotron actually planned 70/120 runs. Fix next: retry/backoff on 429 in `planner.py` (as `nvidia_chat` already does) and re-probe fallback ids with `verify_models`.
 
-- **Blocked:** LiveKit Cloud credentials (free plan) still missing from `agents\.env` → then run `python -m agents.voice.worker dev` and test a live room. Everything else in voice works now as text.
+- **Voice is LIVE over LiveKit (2026-11-07 night).** Credentials in `agents\.env` (project floodvr-jcw6h5ce, US Central). Worker registered as agent `floodvr-voice`; join tokens carry `roomConfig` so the agent is dispatched when the room is created, and `/voice/token` re-dispatches if the room exists without an agent (response field `agent`). Agent stays through phone reconnects (`close_on_disconnect=False`). Tested end to end with synthesized speech: question spoken into room `floodvr` → Parakeet → `/voice` → reply on `floodvr.voice` + Magpie speech; reconnect finds the agent still there. Fixed: plugin import moved to module level (job crashed with "Plugins must be registered on the main thread"). Added house-wide answers for hazards, coverage and total cost. Keep the worker running: `python -m agents.voice.worker dev`.
 - **Asked Mac 1:** make the fridge note legible to the VLM (text overflows the yellow note; blocked in 1/3 shots).
 - **Asked Mac 2:** `/callouts` and `/voice` are live; LiveKit flow is in `contracts/voice.schema.json`.
 - Optional: guard-model bake-off (addendum item 3) — not attempted. Anthropic spend this session: **$0**.
@@ -70,7 +70,7 @@ Last updated: 2026-11-07 (new account session; tunnel restarted)
 | `POST` | `/voice` | live | text voice path, `contracts/voice.schema.json` |
 | `POST` | `/voice/confirm` | live | adjuster accepts/rejects a proposal |
 | `GET` | `/voice/pending` | live | proposals awaiting confirm |
-| `POST` | `/voice/token` | 503 until LiveKit creds | LiveKit join token, room `floodvr` |
+| `POST` | `/voice/token` | live | LiveKit join token, room `floodvr`; agent `floodvr-voice` auto-dispatched |
 
 CORS allows `https://*.vercel.app` and `http://localhost:<port>`.
 

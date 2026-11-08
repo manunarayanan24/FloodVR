@@ -28,6 +28,14 @@ import urllib.request
 
 from agents import settings  # noqa: F401 - loads agents/.env into the environment
 
+# LiveKit plugins must be registered on the main thread, i.e. at import time,
+# not inside the job entrypoint (that crashes the job). Optional so the rest of
+# the repo imports without the voice extras installed.
+try:
+    from livekit.plugins import nvidia  # noqa: E402
+except ImportError:  # pragma: no cover - voice extras not installed
+    nvidia = None
+
 log = logging.getLogger("floodvr.voice")
 API = os.getenv("FLOODVR_API", "http://localhost:8000")
 TOPIC_REPLY = "floodvr.voice"
@@ -45,7 +53,6 @@ def _post_voice(transcript: str, gaze: str | None) -> dict:
 async def entrypoint(ctx) -> None:
     from livekit import rtc
     from livekit.agents import Agent, AgentSession
-    from livekit.plugins import nvidia
 
     await ctx.connect()
     key = os.environ["NVIDIA_API_KEY"]
@@ -81,7 +88,11 @@ async def entrypoint(ctx) -> None:
         asyncio.create_task(_reply())
 
     # An Agent with no LLM: replies come only from /voice via session.say().
-    await session.start(room=ctx.room, agent=Agent(instructions="FloodVR voice relay"))
+    # close_on_disconnect=False: if the phone drops and rejoins, the agent is
+    # still in the room. The job ends when LiveKit closes the empty room.
+    from livekit.agents.voice import room_io
+    await session.start(room=ctx.room, agent=Agent(instructions="FloodVR voice relay"),
+                        room_options=room_io.RoomOptions(close_on_disconnect=False))
     session.say("FloodVR voice ready. Tap and ask.")
 
 
@@ -91,7 +102,10 @@ def main() -> None:
                if not os.getenv(k)]
     if missing:
         raise SystemExit(f"missing in agents/.env: {', '.join(missing)}")
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    if nvidia is None:
+        raise SystemExit("pip install -r agents/voice/requirements.txt")
+    from agents.voice.token import AGENT_NAME
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, agent_name=AGENT_NAME))
 
 
 if __name__ == "__main__":
