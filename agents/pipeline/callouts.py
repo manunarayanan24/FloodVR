@@ -12,9 +12,10 @@ SceneText prop by id.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from agents import settings
+from agents import output_guard, settings
 from agents.schemas import ClaimDraft, DamageManifest, Peril
 
 MAX_TEXT = 60
@@ -129,6 +130,19 @@ def build(draft: ClaimDraft, manifest: DamageManifest, seen: set[str] | None = N
             continue
         add(f"consistency:{n}", iid, "coverage", "Claim conflicts with the scene - review", 2,
             "amber", f.rule.removeprefix("CONSISTENCY_").replace("_", " ") + ".")
+
+    # 7. Missed: damage the adjuster has not looked at yet. Only when the app
+    #    reports what was seen (?seen=...), so an empty list never floods the house.
+    if seen:
+        shown = {c["item_id"] for c in out}
+        for li in draft.line_items:
+            if li.item_id in seen or li.item_id in shown:
+                continue
+            label = output_guard.sanitise_text(re.sub(r"[^A-Za-z0-9 ,.'/()-]", "", li.label))[0]
+            add(f"missed:{li.item_id}", li.item_id, "missed",
+                f"Not inspected yet: {label}" if label else "Not inspected yet", 4, "blue",
+                f"{li.peril.value.replace('_', ' ')}, {li.coverage.value.replace('_', ' ')}, "
+                f"estimate ${li.estimate.low_usd:,.0f}-${li.estimate.high_usd:,.0f}.")
 
     out.sort(key=lambda c: (c["priority"], c["id"]))
     return {"generated_at": draft.generated_at, "audit_trail_id": draft.audit_trail_id,

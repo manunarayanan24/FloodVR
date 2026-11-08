@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://floodvr.local/contracts/callouts.schema.json",
   "title": "FloodVR headset callouts",
-  "description": "Response of GET /callouts \u2014 LIVE on the Windows tunnel. Short in-headset annotations the VR app renders as an arrow or highlight plus one line of text. Reflects the latest guarded POST /assess run, else a cached no-evidence baseline run; the response bytes are identical between runs, so a poller can diff raw text. Query: ?seen=id1,id2 drops callouts whose callout id or item_id is listed. Server keeps text <= 60 chars (schema allows 90). All text is server-side templates over structured data, never evidence or scene text. position = manifest position raised 0.35 m; absent for scene-text (anchor on the SceneText prop by item_id) and whole-house callouts. kind=missed is reserved (the vision inspector picks from a closed list, so it cannot report unlisted damage yet).",
+  "description": "Response of GET /callouts \u2014 LIVE on the Windows tunnel. Short in-headset annotations the VR app renders as an arrow or highlight plus one line of text. Reflects the latest guarded POST /assess run, else a cached no-evidence baseline run; the response bytes are identical between runs, so a poller can diff raw text. Query: ?seen=id1,id2 drops callouts whose callout id or item_id is listed. Server keeps text <= 60 chars (schema allows 90). All text is server-side templates over structured data, never evidence or scene text. position = manifest position raised 0.35 m; absent for scene-text (anchor on the SceneText prop by item_id) and whole-house callouts. kind=missed appears only with ?seen=: damaged items not yet inspected.",
   "type": "object",
   "required": [
     "generated_at",
@@ -54,7 +54,7 @@
               "measurement",
               "coverage"
             ],
-            "description": "hazard = dangerous, do not approach. missed = vision found damage not in the manifest. blocked = an injection attempt was caught here (this is the fridge note). measurement = a derived quantity. coverage = a peril/policy determination worth showing."
+            "description": "hazard = dangerous, do not approach. missed = damage the adjuster has not inspected yet (only returned when ?seen= is given; every damaged line item not in seen). blocked = an injection attempt was caught here (this is the fridge note). measurement = a derived quantity. coverage = a peril/policy determination or a claim-vs-scene conflict."
           },
           "text": {
             "type": "string",
