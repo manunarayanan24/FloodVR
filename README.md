@@ -221,10 +221,11 @@ drive (b) near 0% even when detection misses.
   note (`scene_text`), 9 screenshots + `screens.json` answer key, look polish, geometry export,
   contents fraud-checker items (`heightAboveFloor`, severity-0 undamaged) — pushed. Keeping
   section 4 current in-commit from here on; otherwise idle, waiting on requests.
-- **Mac 2:** Build compiled, deployed to Vercel and tested on iPhone (stereo, head tracking, gaze
-  labels). Walk-between-StandPoints markers, `/callouts` client and tap-to-talk `/voice` client
-  written, awaiting device test. Waiting on Windows to implement `/callouts` + `/voice` (https
-  tunnel; open the page with `?api=<tunnel>`).
+- **Mac 2:** Done. Phone-VR app shipped and iPhone-tested end to end: stereo rig + head
+  tracking, gaze labels, gaze-to-glide walking between StandPoints with a comfort fade,
+  16 server-rendered callouts (with an offline-sample fallback for venue wifi), and
+  LiveKit tap-to-talk voice (NVIDIA Parakeet in, Magpie out) with on-HUD captions.
+  QR: `https://web-gamma-three-xsqthicx3g.vercel.app`.
 - **Windows:** Addendum build order a→i done (h's live LiveKit room waits on credentials). Nemotron now plans each
   run with tool calls, Nemotron VL inspects the 9 screenshots, Nemotron writes a number-checked report; a consistency
   checker flags the laptop/electronics trap and padded bids; geometry quantities feed pricing. Live: `/callouts`,

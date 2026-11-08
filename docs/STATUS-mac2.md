@@ -10,18 +10,12 @@
 
 **Done (round task 4):** `ApiConfig` reads the agents' base URL at runtime: `?api=` in the page URL first, then `StreamingAssets/config.json` (`{"apiBaseUrl": ""}`, new file). `ApiConfig.WhenReady(cb)` / `ApiConfig.Url("/callouts")` for the callouts + voice work.
 
-**Done:** First build compiled clean, deployed, and tested on a real iPhone: stereo view, head turns the right way, gaze labels work. Label now floats close and auto-sizes to fit all text.
+**Done:** Build compiled clean, deployed, iPhone-tested end to end. Stereo view and head tracking work. Gaze labels auto-fit the panel. Walk-between-StandPoints by gazing at blue beams (visible through walls), glides over 1-2 s with a comfort fade. Headset callouts (`/callouts`) show 16 real server callouts (6 red hazards, amber "Injection caught" on the fridge note, blue waterline + flood-cut area, green undamaged laptop/electronics). Offline sample callouts still bundled as a venue-wifi safety net. LiveKit voice integrated using Abhinav's `/voice/client.js`, `FloodVRVoice.jslib`, `LiveKitVoice.cs`; tap once to open the mic, tap again to send; "You said" + "Agent" captions on the HUD; NVIDIA Magpie speaks the reply. Safari speech recognition kept as fallback. Tested on an iPhone in the cardboard viewer: all four features work end to end.
 
-**Done (written, not yet device-tested):** `StandPointNav` + `StandMarker` (gaze a floor marker ~1.5 s to walk to another StandPoint), `CalloutsClient` + `CalloutMarker` (GET /callouts -> coloured dots + one-line text, gaze to expand `detail`), `VoiceClient` + jslib `FloodVR_InitSpeech`/`FloodVR_Speak` (tap to talk -> Safari speech -> POST /voice -> reply shown head-locked and spoken). All three are added to the rig by `VRRigBuilder`.
-
-**Doing:** Build + iPhone test of those three.
-
-**Blocked:** `/callouts` and `/voice` are schema-only on the Windows server until Abhinav implements them; the client retries /callouts every 15 s and shows "AI server not reachable yet" for voice. Open the page with `?api=<https tunnel>` to point at the server.
-
-**Answered by Mac 1:** `heightAboveFloor` = float metres, floor to object bottom, 0 = unset (matches the <=0.001 rule). Sky copy + scene-camera disable already in EnsureRig. `config.json` approved. Teleport approved for after the first iPhone test.
+**Blocked:** Nothing. All of Mac 2's lane is done.
 
 **Waiting on others:**
-- Abhinav: implement `GET /callouts` and `POST /voice` (schemas are in `contracts/`; clients are built).
+- Nothing outstanding. (`GET /callouts` live - 16 callouts; LiveKit voice live; iPhone-tested.)
 
 **Deploy URL:** https://web-gamma-three-xsqthicx3g.vercel.app (production alias, public, loads without login). Built headless (Build Web, 9.85 MB, Gzip). Not yet tested on an iPhone.
 
