@@ -10,16 +10,18 @@
 
 **Done (round task 4):** `ApiConfig` reads the agents' base URL at runtime: `?api=` in the page URL first, then `StreamingAssets/config.json` (`{"apiBaseUrl": ""}`, new file). `ApiConfig.WhenReady(cb)` / `ApiConfig.Url("/callouts")` for the callouts + voice work.
 
-**Doing:** First iPhone test of the deployed build, then StandPoint teleport. Build + deploy done; compiled clean in Unity 6000.0.85f2.
+**Done:** First build compiled clean, deployed, and tested on a real iPhone: stereo view, head turns the right way, gaze labels work. Label now floats close and auto-sizes to fit all text.
 
-**Blocked:**
-- Editor installed; Web Build Support being added (Windows Build Support was installed by mistake, harmless).
-- None of the new C# has been compiled yet (no Unity on this machine until the install finishes). First compile happens when the project opens; expect to fix small typos then.
+**Done (written, not yet device-tested):** `StandPointNav` + `StandMarker` (gaze a floor marker ~1.5 s to walk to another StandPoint), `CalloutsClient` + `CalloutMarker` (GET /callouts -> coloured dots + one-line text, gaze to expand `detail`), `VoiceClient` + jslib `FloodVR_InitSpeech`/`FloodVR_Speak` (tap to talk -> Safari speech -> POST /voice -> reply shown head-locked and spoken). All three are added to the rig by `VRRigBuilder`.
+
+**Doing:** Build + iPhone test of those three.
+
+**Blocked:** `/callouts` and `/voice` are schema-only on the Windows server until Abhinav implements them; the client retries /callouts every 15 s and shows "AI server not reachable yet" for voice. Open the page with `?api=<https tunnel>` to point at the server.
 
 **Answered by Mac 1:** `heightAboveFloor` = float metres, floor to object bottom, 0 = unset (matches the <=0.001 rule). Sky copy + scene-camera disable already in EnsureRig. `config.json` approved. Teleport approved for after the first iPhone test.
 
 **Waiting on others:**
-- Abhinav: `/callouts` and `/voice` schemas in `contracts/` before headset callouts + tap-to-talk are built.
+- Abhinav: implement `GET /callouts` and `POST /voice` (schemas are in `contracts/`; clients are built).
 
 **Deploy URL:** https://web-gamma-three-xsqthicx3g.vercel.app (production alias, public, loads without login). Built headless (Build Web, 9.85 MB, Gzip). Not yet tested on an iPhone.
 

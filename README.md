@@ -221,11 +221,10 @@ drive (b) near 0% even when detection misses.
   note (`scene_text`), 9 screenshots + `screens.json` answer key, look polish, geometry export,
   contents fraud-checker items (`heightAboveFloor`, severity-0 undamaged) — pushed. Keeping
   section 4 current in-commit from here on; otherwise idle, waiting on requests.
-- **Mac 2:** BuildWeb hardened (rig added to an in-memory copy, House.unity never touched),
-  head tracking fixed for landscape + recentre, gaze selection (1.5 s dwell label, waterline
-  "Water reached 0.90 m (2 ft 11 in)", fridge `scene_text`, severity 0, `heightAboveFloor`),
-  runtime API config (`?api=` / `StreamingAssets/config.json`) — pushed, **not yet compiled**.
-  Next: first compile → Build Web → Vercel → iPhone test → StandPoint teleport.
+- **Mac 2:** Build compiled, deployed to Vercel and tested on iPhone (stereo, head tracking, gaze
+  labels). Walk-between-StandPoints markers, `/callouts` client and tap-to-talk `/voice` client
+  written, awaiting device test. Waiting on Windows to implement `/callouts` + `/voice` (https
+  tunnel; open the page with `?api=<tunnel>`).
 - **Windows:** AI stack pushed, live on NVIDIA + Anthropic. **Honest attack numbers:** seed
   0% hijack (we wrote it), held-out #1 **93.3% → 8.3% after tuning** (now a training score),
   fresh held-out #2 **53.3%** ← the number for judges. 0/46 false positives, 5/5 claim
