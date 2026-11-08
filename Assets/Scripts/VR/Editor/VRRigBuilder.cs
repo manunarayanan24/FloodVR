@@ -56,6 +56,11 @@ namespace FloodVR.EditorTools
             Camera sceneCam = Camera.main;
             bool haveSceneCam = sceneCam != null && sceneCam.transform.root != root.transform;
 
+            // Rig-level features (runtime-created UI, no scene objects needed).
+            if (root.GetComponent<StandPointNav>() == null) root.AddComponent<StandPointNav>();   // walk between StandPoints
+            if (root.GetComponent<CalloutsClient>() == null) root.AddComponent<CalloutsClient>(); // GET /callouts
+            if (root.GetComponent<VoiceClient>() == null) root.AddComponent<VoiceClient>();       // tap-to-talk, POST /voice
+
             var headLook = root.GetComponentInChildren<HeadLook>(true);
             if (headLook != null && headLook.GetComponent<GazeSelector>() == null)
                 headLook.gameObject.AddComponent<GazeSelector>();

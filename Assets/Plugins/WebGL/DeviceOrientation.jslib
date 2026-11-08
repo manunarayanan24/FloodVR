@@ -70,6 +70,7 @@ mergeInto(LibraryManager.library, {
     window.floodVR = window.floodVR || {};
     window.floodVR.attach = attach;
     window.floodVR.requestPermission = function () {
+      window.floodVR.enteredAt = Date.now(); // tap-to-talk ignores taps right after "Enter VR"
       try {
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -116,5 +117,69 @@ mergeInto(LibraryManager.library, {
     var buf = _malloc(size);
     stringToUTF8(val, buf, size);
     return buf;
+  },
+
+  // Tap-to-talk. Safari's speech recognition must be started inside a real tap, so the tap
+  // handler lives here in JS. Results/state are sent back to the Unity object `goName`:
+  //   OnSpeechState("listening" | "idle" | "unsupported" | "error:<code>")
+  //   OnSpeechResult("<transcript>")
+  FloodVR_InitSpeech: function (goNamePtr) {
+    var go = UTF8ToString(goNamePtr);
+    function inst() {
+      return (typeof unityInstance !== 'undefined' && unityInstance) || window.unityInstance ||
+             (typeof gameInstance !== 'undefined' && gameInstance);
+    }
+    function send(method, msg) { var i = inst(); if (i) i.SendMessage(go, method, msg); }
+
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    window.floodVR = window.floodVR || {};
+    if (!SR) { send('OnSpeechState', 'unsupported'); return; }
+
+    var rec = new SR();
+    rec.lang = 'en-US';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    var listening = false;
+
+    rec.onstart = function () { listening = true; send('OnSpeechState', 'listening'); };
+    rec.onresult = function (e) {
+      try {
+        var r = e.results[e.results.length - 1];
+        var txt = r[0].transcript || '';
+        if (txt) send('OnSpeechResult', txt);
+      } catch (err) {}
+    };
+    rec.onerror = function (e) { send('OnSpeechState', 'error:' + (e && e.error ? e.error : 'unknown')); };
+    rec.onend = function () { listening = false; send('OnSpeechState', 'idle'); };
+
+    function onTap() {
+      var f = window.floodVR;
+      if (!f.enteredAt || Date.now() - f.enteredAt < 1500) return; // that tap was "Enter VR"
+      if (listening) { try { rec.stop(); } catch (e1) {} return; }
+      try { rec.start(); } catch (e2) { send('OnSpeechState', 'error:start-failed'); }
+    }
+    // Unity's canvas may swallow the synthetic click, so listen to touchend too (debounced).
+    var lastTap = 0;
+    function once() {
+      var now = Date.now();
+      if (now - lastTap < 700) return;
+      lastTap = now;
+      onTap();
+    }
+    document.addEventListener('touchend', once, true);
+    document.addEventListener('click', once, true);
+  },
+
+  // Reads text aloud (the voice reply). Works after the user has tapped the page.
+  FloodVR_Speak: function (textPtr) {
+    try {
+      var text = UTF8ToString(textPtr);
+      if (!text || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
   }
 });

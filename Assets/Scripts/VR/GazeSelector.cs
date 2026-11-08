@@ -28,6 +28,7 @@ namespace FloodVR
         public Color selectedColor = new Color(0.35f, 0.9f, 0.5f);
 
         // Hooks for later (e.g. logging what the adjuster inspected, headset callouts).
+        public static string LastItemId = ""; // last damage item the adjuster inspected (sent with voice notes)
         public static event Action<DamageItem> OnItemSelected;
         public static event Action<SceneText> OnSceneTextSelected;
 
@@ -124,6 +125,10 @@ namespace FloodVR
         static Component Resolve(Collider c)
         {
             if (c == null) return null;
+            StandMarker sm = c.GetComponentInParent<StandMarker>();
+            if (sm != null) return sm;
+            CalloutMarker cm = c.GetComponentInParent<CalloutMarker>();
+            if (cm != null) return cm;
             Transform t = c.transform;
             // The sticky note is a card + TMP text that are siblings under the fridge. The card
             // would otherwise resolve to the fridge's DamageItem, so check for scene text first.
@@ -196,10 +201,26 @@ namespace FloodVR
         void Select(Component key, float dist)
         {
             string title, body;
+            StandMarker sm = key as StandMarker;
+            if (sm != null)
+            {
+                // Walk to that StandPoint, then start fresh (the old target is behind us now).
+                sm.Activate();
+                _target = null; _dwell = 0f; _selected = false; _lost = 0f;
+                _panel.SetActive(false);
+                return;
+            }
+            CalloutMarker cm = key as CalloutMarker;
             DamageItem di = key as DamageItem;
             SceneText st = key as SceneText;
-            if (di != null)
+            if (cm != null)
             {
+                title = cm.Title;
+                body = cm.Body;
+            }
+            else if (di != null)
+            {
+                LastItemId = di.id;
                 Describe(di, out title, out body);
                 if (OnItemSelected != null) OnItemSelected(di);
             }
