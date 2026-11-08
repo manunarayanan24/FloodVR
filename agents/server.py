@@ -184,7 +184,11 @@ def callouts(seen: str = "") -> dict:
         draft, manifest = _LAST["draft"], _LAST["manifest"]
     else:
         draft, manifest = _baseline()
-    return build(draft, manifest, {s for s in seen.split(",") if s})
+    seen_ids = {s for s in seen.split(",") if s}
+    if seen_ids and manifest is not None:
+        from agents.voice import notes
+        notes.SEEN.update(s for s in seen_ids if s in {i.id for i in manifest.items})
+    return build(draft, manifest, seen_ids)
 
 
 class VoiceRequest(BaseModel):
@@ -193,6 +197,7 @@ class VoiceRequest(BaseModel):
     standpoint: str | None = Field(default=None, max_length=80)
     gaze_item_id: str | None = Field(default=None, max_length=80)
     audit_trail_id: str | None = Field(default=None, max_length=80)
+    seen_item_ids: list[str] = Field(default_factory=list, max_length=200)
 
 
 class VoiceConfirm(BaseModel):
@@ -211,6 +216,9 @@ def voice(req: VoiceRequest) -> dict:
         draft, manifest = _LAST["draft"], _LAST["manifest"]
     else:
         draft, manifest = _baseline()
+    # Gaze history for "what did I miss?": only ids that exist in the manifest.
+    known = {i.id for i in manifest.items} if manifest else set()
+    notes.SEEN.update(s for s in req.seen_item_ids if s in known)
     return notes.handle(req.transcript, gaze_item_id=req.gaze_item_id,
                         standpoint=req.standpoint, audit_trail_id=req.audit_trail_id,
                         draft=draft, manifest=manifest)

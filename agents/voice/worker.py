@@ -47,8 +47,9 @@ MERGE_PAUSE_S = 2.5    # no push-to-talk signal: answer after this long without 
 RELEASE_GRACE_S = 1.5  # after the button is released: let the last words arrive
 
 
-def _post_voice(transcript: str, gaze: str | None) -> dict:
-    body = json.dumps({"transcript": transcript[:4000], "gaze_item_id": gaze}).encode()
+def _post_voice(transcript: str, gaze: str | None, seen: list[str] | None = None) -> dict:
+    body = json.dumps({"transcript": transcript[:4000], "gaze_item_id": gaze,
+                       "seen_item_ids": (seen or [])[-200:]}).encode()
     req = urllib.request.Request(f"{API}/voice", data=body,
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 - fixed local URL
@@ -63,6 +64,7 @@ async def entrypoint(ctx) -> None:
     key = os.environ["NVIDIA_API_KEY"]
     session = AgentSession(stt=nvidia.STT(api_key=key), tts=nvidia.TTS(api_key=key))
     state: dict[str, str | None] = {"gaze": None}
+    seen: list[str] = []  # every item looked at this session, for "what did I miss?"
 
     @ctx.room.on("data_received")
     def _on_data(pkt: rtc.DataPacket) -> None:
@@ -79,6 +81,8 @@ async def entrypoint(ctx) -> None:
         try:
             gid = json.loads(pkt.data.decode()).get("gaze_item_id")
             state["gaze"] = gid if isinstance(gid, str) and len(gid) <= 80 else None
+            if state["gaze"] and state["gaze"] not in seen:
+                seen.append(state["gaze"])
         except (ValueError, AttributeError):
             pass
 
@@ -170,7 +174,7 @@ async def entrypoint(ctx) -> None:
             await ctx.room.local_participant.publish_data(
                 heard.encode(), topic=TOPIC_HEARD, reliable=True)
             try:
-                res = await asyncio.to_thread(_post_voice, transcript, state["gaze"])
+                res = await asyncio.to_thread(_post_voice, transcript, state["gaze"], list(seen))
             except Exception as exc:  # noqa: BLE001 - keep the room alive
                 log.warning("voice call failed: %s", exc)
                 session.say("Sorry, the claim server didn't answer.")

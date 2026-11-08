@@ -28,6 +28,14 @@
         "audit_trail_id": {
           "type": "string",
           "description": "The /assess run this note attaches to."
+        },
+        "seen_item_ids": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional. Damage ids the adjuster has looked at this session (gaze history). Used only to answer 'what did I miss?'; unknown ids are ignored. The LiveKit worker fills this from floodvr.gaze automatically."
         }
       }
     },
