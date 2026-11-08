@@ -272,8 +272,12 @@ def main() -> int:
         "ours": ours,
         "naive": naive,
     }
-    OUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"\nwrote {OUT.relative_to(settings.REPO_ROOT)}")
+    out = OUT.with_name("endtoend_planner.json") if args.planner else OUT
+    if args.planner:
+        print(f"  planner transcript leaks   {ours['planner_transcript_leaks']}")
+        print(f"  runs with enforced stages  {ours['planner_runs_with_enforced_stages']}")
+    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"\nwrote {out.relative_to(settings.REPO_ROOT)}")
     from evals.headline import refresh
     head = refresh()
     if head and head.get("pitch"):

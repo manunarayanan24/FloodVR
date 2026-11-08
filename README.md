@@ -225,17 +225,11 @@ drive (b) near 0% even when detection misses.
   labels). Walk-between-StandPoints markers, `/callouts` client and tap-to-talk `/voice` client
   written, awaiting device test. Waiting on Windows to implement `/callouts` + `/voice` (https
   tunnel; open the page with `?api=<tunnel>`).
-- **Windows:** AI stack pushed, live on NVIDIA + Anthropic. **Honest attack numbers:** seed
-  0% hijack (we wrote it), held-out #1 **93.3% → 8.3% after tuning** (now a training score),
-  fresh held-out #2 **53.3%** ← the number for judges. 0/46 false positives, 5/5 claim
-  accuracy. **Every model id in the original brief was dead (404/410)**; working ids +
-  fallbacks pinned in `agents/config.yaml`. Adopted the new contract (severity 0,
-  `heightAboveFloor`, `scene_text` → guard; the real fridge note fires 3 rules).
-  `/callouts` + `/voice` schemas pushed for Mac 2. Tunnel URL + endpoint list in
-  `docs/STATUS-windows.md`. **The NVIDIA guard model scored our live attack "safe"** — content
-  safety ≠ injection detection, so the 2nd layer stays off until a bake-off earns it.
-  Nothing blocked. Next: Vision Inspector → orchestrator tool calling → Fraud Checker →
-  Claim Writer → `/callouts` → console.
+- **Windows:** Addendum build order a→i done (h's live LiveKit room waits on credentials). Nemotron now plans each
+  run with tool calls, Nemotron VL inspects the 9 screenshots, Nemotron writes a number-checked report; a consistency
+  checker flags the laptop/electronics trap and padded bids; geometry quantities feed pricing. Live: `/callouts`,
+  `/voice`, `/vision`, `/measurements`, console at `<tunnel>/console`. **Numbers for judges:** detection misses 53.3% of
+  fresh held-out attacks; 0/60 changed the claim (also 0/60 with the Nemotron planner). Tunnel in `docs/STATUS-windows.md`.
 
 ## 9. Open requests (cross-lane)
 

@@ -264,8 +264,23 @@ def results() -> dict:
 
 
 @app.get("/")
+@app.get("/console")
 def console() -> FileResponse:
     index = CONSOLE_DIR / "index.html"
     if not index.exists():
         raise HTTPException(404, "console not built yet")
     return FileResponse(index)
+
+
+SCREENS_DIR = settings.CONTRACTS_DIR / "samples" / "screens"
+
+
+@app.get("/screens/{name}")
+def screen(name: str) -> FileResponse:
+    """VR screenshots for the console's vision panel. Names are checked against
+    screens.json, so no path from the request ever reaches the filesystem."""
+    key = json.loads((SCREENS_DIR / "screens.json").read_text(encoding="utf-8"))["screens"]
+    allowed = {s["filename"] for s in key}
+    if name not in allowed:
+        raise HTTPException(404, "unknown screenshot")
+    return FileResponse(SCREENS_DIR / name, media_type="image/png")
