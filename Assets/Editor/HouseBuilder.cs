@@ -166,7 +166,7 @@ namespace FloodVR
 
             MutatingTargets mutating = DamageBuilder.GetMutatingTargetIds();
 
-            BuildFloor(root.transform, layout.house);
+            BuildFloor(root.transform, layout);
             BuildCeiling(root.transform, layout.house);
             BuildWalls(root.transform, layout);
             BuildStandPoints(root.transform, layout);
@@ -247,6 +247,39 @@ namespace FloodVR
             return mat;
         }
 
+        internal const string WoodFloorTexturePath = "Assets/ThirdParty/PolyHaven/Textures/wood_floor_diff_1k.jpg";
+        internal const string TileFloorTexturePath = "Assets/ThirdParty/PolyHaven/Textures/floor_tiles_02_diff_1k.jpg";
+        internal const string PlasterWallTexturePath = "Assets/ThirdParty/PolyHaven/Textures/painted_plaster_wall_diff_1k.jpg";
+
+        // Loads a texture and makes sure its importer honors the project's
+        // "max 1024px, mipmaps on" rule regardless of Unity's default
+        // settings for a freshly-dropped-in file.
+        internal static Texture2D LoadConstrainedTexture(string path)
+        {
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer != null && (importer.maxTextureSize > 1024 || !importer.mipmapEnabled))
+            {
+                importer.maxTextureSize = 1024;
+                importer.mipmapEnabled = true;
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        internal static Material GetOrCreateTexturedMaterial(Color tint, string name, string texturePath, Vector2 tiling)
+        {
+            Material mat = GetOrCreateMaterial(tint, name);
+            Texture2D tex = LoadConstrainedTexture(texturePath);
+            if (tex != null)
+            {
+                mat.mainTexture = tex;
+                mat.mainTextureScale = tiling;
+                EditorUtility.SetDirty(mat);
+            }
+            return mat;
+        }
+
         internal static GameObject CreatePrimitiveChild(PrimitiveType type, string name, Transform parent)
         {
             GameObject go = GameObject.CreatePrimitive(type);
@@ -264,14 +297,34 @@ namespace FloodVR
             GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
         }
 
-        private static void BuildFloor(Transform root, HouseData house)
+        // One floor slab per room (not one slab for the whole house) so the
+        // kitchen can use a tile texture while the wood-floor rooms share a
+        // different one. The room rectangles already exactly tile the house
+        // footprint with no gaps/overlaps, so this changes nothing about the
+        // house's dimensions -- house_geometry.json is computed straight from
+        // house_layout.json's rooms/walls, never from this mesh geometry.
+        private static void BuildFloor(Transform root, HouseLayout layout)
         {
             const float thickness = 0.1f;
-            GameObject floor = CreatePrimitiveChild(PrimitiveType.Cube, "Floor", root);
-            floor.transform.position = new Vector3(house.width / 2f, -thickness / 2f, house.depth / 2f);
-            floor.transform.localScale = new Vector3(house.width, thickness, house.depth);
-            floor.GetComponent<Renderer>().sharedMaterial = GetOrCreateMaterial(house.floorColor.ToColor(), "Floor");
-            MarkBatchingStatic(floor);
+            GameObject floorRoot = new GameObject("Floor");
+            floorRoot.transform.SetParent(root, false);
+
+            foreach (RoomData room in layout.rooms)
+            {
+                float w = room.maxX - room.minX;
+                float d = room.maxZ - room.minZ;
+                GameObject slab = CreatePrimitiveChild(PrimitiveType.Cube, $"Floor_{room.id}", floorRoot.transform);
+                slab.transform.position = new Vector3((room.minX + room.maxX) / 2f, -thickness / 2f, (room.minZ + room.maxZ) / 2f);
+                slab.transform.localScale = new Vector3(w, thickness, d);
+
+                // Tile scale derived per-room so the texture repeat rate looks
+                // consistent regardless of each room's size.
+                bool isKitchen = room.id == "kitchen";
+                slab.GetComponent<Renderer>().sharedMaterial = isKitchen
+                    ? GetOrCreateTexturedMaterial(Color.white, "FloorTile", TileFloorTexturePath, new Vector2(w / 2f, d / 2f))
+                    : GetOrCreateTexturedMaterial(Color.white, $"FloorWood_{room.id}", WoodFloorTexturePath, new Vector2(w / 2f, d / 2f));
+                MarkBatchingStatic(slab);
+            }
         }
 
         private static void BuildCeiling(Transform root, HouseData house)
@@ -288,7 +341,7 @@ namespace FloodVR
         {
             GameObject wallsRoot = new GameObject("Walls");
             wallsRoot.transform.SetParent(root, false);
-            Material wallMat = GetOrCreateMaterial(layout.house.wallColor.ToColor(), "Wall");
+            Material wallMat = GetOrCreateTexturedMaterial(Color.white, "Wall", PlasterWallTexturePath, new Vector2(4f, 1.5f));
 
             foreach (WallData wall in layout.walls)
             {
