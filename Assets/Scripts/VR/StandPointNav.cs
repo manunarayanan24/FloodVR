@@ -106,6 +106,8 @@ namespace FloodVR
             beacon.transform.localPosition = new Vector3(0f, 0.8f, 0f);
             beacon.transform.localScale = new Vector3(0.08f, 0.8f, 0.08f);
             Destroy(beacon.GetComponent<Collider>());
+            var bbox = beacon.AddComponent<BoxCollider>(); // staring at the beam works too
+            bbox.size = new Vector3(5f, 2f, 5f);
             Style(beacon, _beaconMat);
 
             // Floating name.

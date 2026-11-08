@@ -248,25 +248,14 @@ namespace FloodVR
             _panel.SetActive(true);
         }
 
-        // Sizes the panel to fit ALL the text (no clipping), top-aligned, and returns its height.
+        // Fixed-size panel; the body text auto-shrinks to fit inside it (no measuring, so it
+        // can never spill outside the panel). Returns the panel height.
         float LayoutPanel()
         {
             float tw = LabelMetres - 2f * LabelPad;
-
-            _body.enableAutoSizing = false;
-            float size = BodySize;
-            float bodyH;
-            while (true)
-            {
-                _body.fontSize = size;
-                bodyH = _body.GetPreferredValues(_body.text, tw, 0f).y;
-                if (bodyH <= BodyMaxH || size <= 0.9f) break;
-                size -= 0.1f;
-            }
-            bodyH = Mathf.Clamp(bodyH, 0.06f, BodyMaxH + 0.1f);
-
-            float h = LabelPad + TitleH + BodyGap + bodyH + LabelPad;
+            const float h = 0.56f;
             float top = h * 0.5f;
+            float bodyH = h - 2f * LabelPad - TitleH - BodyGap;
 
             _bgT.localScale = new Vector3(LabelMetres, h, 1f);
             _barT.localPosition = new Vector3(0f, top - 0.006f, -0.002f);
@@ -274,6 +263,9 @@ namespace FloodVR
             _title.rectTransform.sizeDelta = new Vector2(tw, TitleH);
             _title.rectTransform.localPosition = new Vector3(0f, top - LabelPad - TitleH * 0.5f, -0.01f);
 
+            _body.enableAutoSizing = true;
+            _body.fontSizeMin = 0.2f;
+            _body.fontSizeMax = BodySize;
             _body.rectTransform.sizeDelta = new Vector2(tw, bodyH);
             _body.rectTransform.localPosition = new Vector3(0f, top - LabelPad - TitleH - BodyGap - bodyH * 0.5f, -0.01f);
             return h;
