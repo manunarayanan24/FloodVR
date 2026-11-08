@@ -174,6 +174,34 @@ def _baseline() -> tuple[ClaimDraft, DamageManifest]:
     return _LAST["baseline"]
 
 
+def _report_source() -> tuple[ClaimDraft, DamageManifest]:
+    """Latest guarded /assess, else the fixed-order baseline with a Claim Writer
+    report added once (number-checked, template fallback, 30 s budget)."""
+    if _LAST["draft"] is not None:
+        return _LAST["draft"], _LAST["manifest"]
+    draft, manifest = _baseline()
+    if not draft.adjuster_report:
+        from agents.pipeline.writer import write
+        untrusted = {f"scene_text:{s.id}": s.text for s in manifest.scene_text}
+        draft.adjuster_report = write(draft, untrusted, deadline=time.perf_counter() + 30.0)
+    return draft, manifest
+
+
+@app.get("/report")
+def report_page() -> FileResponse:
+    """Printable one-page claim report (Print -> Save as PDF). Data from /report/data."""
+    return FileResponse(CONSOLE_DIR / "report.html")
+
+
+@app.get("/report/data")
+def report_data() -> dict:
+    """Report data for the latest guarded run. Every string passed output_guard;
+    blocked injections are rule names and counts only."""
+    from agents.pipeline import report
+    draft, manifest = _report_source()
+    return report.build(draft, manifest)
+
+
 @app.get("/callouts")
 def callouts(seen: str = "") -> dict:
     """Headset callouts (contracts/callouts.schema.json) for the latest guarded /assess

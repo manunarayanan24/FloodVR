@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FloodVR Draft Claim</title>
+<style>
+  :root { --ink:#14212b; --muted:#5b6b77; --line:#d5dde3; --accent:#1f6f9a; --bad:#b4372a; --ok:#2c6e49; --paper:#ffffff; --bg:#eef2f5; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:13px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .bar { display:flex; gap:10px; justify-content:flex-end; max-width:860px; margin:16px auto 0; padding:0 16px; }
+  .bar button { font:600 14px system-ui; border:0; border-radius:8px; padding:10px 16px; background:var(--accent); color:#fff; cursor:pointer; }
+  .page { position:relative; max-width:860px; margin:12px auto 32px; background:var(--paper); padding:32px 36px; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .stamp { position:absolute; top:26px; right:30px; transform:rotate(8deg); border:3px solid var(--bad); color:var(--bad);
+           font:800 22px/1 system-ui; letter-spacing:.15em; padding:6px 12px; border-radius:6px; opacity:.85; }
+  h1 { font-size:20px; margin:0 0 4px; padding-right:130px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin:20px 0 6px;
+       border-bottom:1px solid var(--line); padding-bottom:3px; break-after:avoid; }
+  .meta { color:var(--muted); font-size:12px; }
+  .totals { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:14px; }
+  .tot { border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+  .tot b { display:block; font-size:16px; font-variant-numeric:tabular-nums; }
+  .tot span { color:var(--muted); font-size:11px; }
+  .report p { margin:0 0 7px; white-space:pre-wrap; }
+  table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  th, td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tr { break-inside:avoid; }
+  .p1 { color:var(--bad); font-weight:700; }
+  ul { margin:0; padding-left:18px; } li { margin:2px 0; break-inside:avoid; }
+  .flow { border-left:4px solid var(--ok); padding:6px 10px; background:#eef7f1; }
+  .flow.bad { border-color:var(--bad); background:#fbeeec; }
+  .muted { color:var(--muted); }
+  .err { color:var(--bad); }
+  footer { margin-top:18px; color:var(--muted); font-size:10.5px; border-top:1px solid var(--line); padding-top:6px; }
+  @media (max-width:640px) { .page { padding:20px 16px; } .totals { grid-template-columns:1fr 1fr; } .stamp { position:static; display:inline-block; margin-bottom:8px; } h1 { padding-right:0; } }
+  @page { size: letter; margin: 12mm; }
+  @media print {
+    body { background:#fff; font-size:10.5px; }
+    .bar { display:none; }
+    .page { box-shadow:none; margin:0; max-width:none; padding:0; }
+    h2 { margin-top:12px; }
+    table { font-size:9.5px; }
+    th, td { padding:2px 4px; }
+    .stamp { top:0; right:0; }
+    a { color:inherit; text-decoration:none; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><button id="print" type="button">Save as PDF</button></div>
+<main class="page" id="page">
+  <div class="stamp">DRAFT</div>
+  <h1 id="title">Draft claim — pending adjuster approval</h1>
+  <div class="meta" id="meta">Loading…</div>
+  <div class="totals" id="totals"></div>
+  <h2>Adjuster report</h2><div class="report" id="report"></div>
+  <h2>Line items</h2><div id="lines"></div>
+  <h2>Hazards by priority</h2><div id="hazards"></div>
+  <h2>Flagged findings and review list</h2><div id="flags"></div>
+  <h2>Blocked injection attempts</h2><div id="blocked"></div>
+  <h2>Information flow</h2><div id="flow"></div>
+  <footer id="foot">FloodVR draft. Status is always "draft pending human": no agent can approve or pay a claim.
+    Peril, coverage and cost come from the policy and the rate table, never from evidence text.</footer>
+</main>
+<script>
+  // All data is rendered with textContent / createElement; no innerHTML of data.
+  // The server already passed every string through output_guard.
+  function el(tag, attrs, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+    for (const k of kids) n.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    return n;
+  }
+  const usd = (x) => "$" + Math.round(Number(x) || 0).toLocaleString("en-US");
+  const range = (a, b) => usd(a) + "–" + usd(b);
+  const $ = (id) => document.getElementById(id);
+  $("print").addEventListener("click", () => window.print());
+
+  function table(head, rows, numCols) {
+    const t = el("table", {}, el("thead", {}, el("tr", {}, ...head.map((h) => el("th", {}, h)))));
+    const b = el("tbody", {});
+    rows.forEach((r) => b.append(el("tr", {}, ...r.map((c, i) => el("td", numCols.includes(i) ? { class: "num" } : {}, c)))));
+    t.append(b);
+    return t;
+  }
+
+  async function load() {
+    let d;
+    try {
+      const res = await fetch("/report/data");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      d = await res.json();
+    } catch (e) { $("meta").replaceChildren(el("span", { class: "err" }, "Could not load the claim: " + e.message)); return; }
+
+    $("title").textContent = d.title;
+    const when = new Date(d.generated_at);
+    $("meta").textContent = "Generated " + (isNaN(when) ? d.generated_at : when.toLocaleString()) +
+      " · Audit trail " + d.audit_trail_id + " · Status: " + d.status.replace(/_/g, " ");
+
+    const t = d.totals;
+    $("totals").replaceChildren(
+      el("div", { class: "tot" }, el("b", {}, range(t.low, t.high)), el("span", {}, "Estimate range")),
+      el("div", { class: "tot" }, el("b", {}, String(t.items)), el("span", {}, "Line items")),
+      el("div", { class: "tot" }, el("b", {}, range(t.flood[0], t.flood[1])), el("span", {}, "Flood policy")),
+      el("div", { class: "tot" }, el("b", {}, range(t.homeowners[0], t.homeowners[1])), el("span", {}, "Homeowners policy")));
+
+    const paras = (d.report.text || "").split(/\n\s*\n/).filter(Boolean);
+    $("report").replaceChildren(...(paras.length ? paras.map((p) => el("p", {}, p))
+      : [el("p", { class: "muted" }, "No report text.")]),
+      el("p", { class: "muted" }, "Written by " + (d.report.source === "llm" ? "Nemotron" : "template") +
+        (d.report.numbers_checked ? "; every number checked against the claim data." : ".")));
+
+    $("lines").replaceChildren(table(
+      ["Item", "Room", "Peril", "Policy / clauses", "Quantity", "Estimate"],
+      d.line_items.map((r) => [r.item, r.room, r.peril, r.policy + (r.clauses.length ? " · " + r.clauses.join(", ") : ""),
+                               r.quantity || "—", range(r.low, r.high)]),
+      [5]));
+
+    $("hazards").replaceChildren(d.hazards.length ? table(
+      ["P", "Item", "Hazard", "Action", "Call"],
+      d.hazards.map((h) => [String(h.priority), h.item, h.type, h.action, h.dispatch]), []) : el("p", { class: "muted" }, "None recorded."));
+    $("hazards").querySelectorAll("tbody tr").forEach((tr, i) => { if (d.hazards[i].priority === 1) tr.firstChild.className = "p1"; });
+
+    const flags = el("div", {});
+    flags.append(el("p", {}, el("b", {}, "Needs your review (" + d.review.length + "):")));
+    flags.append(d.review.length ? el("ul", {}, ...d.review.map((r) => el("li", {}, r.item + " — " + r.reason)))
+                                 : el("p", { class: "muted" }, "Nothing."));
+    flags.append(el("p", {}, el("b", {}, "Flagged findings (" + d.flagged.length + "):")));
+    flags.append(d.flagged.length ? el("ul", {}, ...d.flagged.map((f) => el("li", {}, f.rule + " (" + f.layer + ", " + f.source + ")")))
+                                  : el("p", { class: "muted" }, "None."));
+    $("flags").replaceChildren(flags);
+
+    const b = d.blocked;
+    $("blocked").replaceChildren(
+      el("p", {}, b.total + " rule hit" + (b.total === 1 ? "" : "s") + " across " + b.inputs + " untrusted input" +
+        (b.inputs === 1 ? "" : "s") + (b.channels.length ? " (" + b.channels.join(", ") + ")" : "") +
+        ". The injected text is not reproduced here."),
+      b.rules.length ? el("ul", {}, ...b.rules.map((r) => el("li", {}, r.rule + " × " + r.count))) : el("p", { class: "muted" }, "None."));
+
+    const f = d.flow;
+    $("flow").replaceChildren(el("div", { class: "flow" + (f.clean ? "" : " bad") },
+      el("b", {}, f.clean ? "Clean: no untrusted text reached a money decision. " : "VIOLATION: untrusted text reached a decision. "),
+      f.statement + (f.decision_fields_checked != null ? " (" + f.decision_fields_checked + " decision fields checked, " +
+        f.untrusted_inputs_seen + " untrusted inputs seen.)" : "")));
+  }
+  load();
+</script>
+</body>
+</html>
