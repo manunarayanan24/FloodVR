@@ -45,7 +45,7 @@ _TOOL_DOCS: dict[str, str] = {
     "adjudicate_coverage": "Deterministic peril/coverage/estimate for every damaged item. Requires run_intake.",
     "triage_hazards": "Rank safety hazards (live electrics, gas, structural, mold).",
     "inspect_screens": "Summary of the Vision Inspector's last run over the VR screenshots (counts only).",
-    "check_consistency": "Cross-check claimed items against the scene (heights vs waterline, undamaged items, padded bids). Requires run_intake.",
+    "check_consistency": "Cross-check claimed items against the scene (heights vs waterline, undamaged items, padded bids). Requires adjudicate_coverage.",
     "finalize_draft": "Compute totals, run the output guard and flow check, and return the claim draft. Call last.",
 }
 
@@ -69,14 +69,6 @@ def _vision_summary(_run: Run) -> dict:
             "scene_text_blocked": s["scene_text_blocked"]}
 
 
-def _consistency(run: Run) -> dict:
-    try:
-        from agents.pipeline import consistency
-    except ImportError:
-        return {"available": False}
-    return consistency.run_stage(run)
-
-
 def _dispatch(run: Run) -> dict[str, Callable[[], Any]]:
     return {
         "run_guard": run.guard,
@@ -84,7 +76,7 @@ def _dispatch(run: Run) -> dict[str, Callable[[], Any]]:
         "adjudicate_coverage": run.adjudicate,
         "triage_hazards": run.triage,
         "inspect_screens": lambda: _vision_summary(run),
-        "check_consistency": lambda: _consistency(run),
+        "check_consistency": run.consistency,
     }
 
 
@@ -201,5 +193,6 @@ def assess_planned(req: AssessRequest) -> ClaimDraft:
     return draft
 
 
-REQUIRED_ORDER = ("run_guard", "run_intake", "adjudicate_coverage", "triage_hazards",
+REQUIRED_ORDER = ("run_guard", "run_intake", "adjudicate_coverage", "check_consistency",
+                  "triage_hazards",
                   "finalize_draft")

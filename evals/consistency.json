@@ -1,0 +1,99 @@
+{
+  "offline": false,
+  "cases": 7,
+  "passed": 7,
+  "precision": 1.0,
+  "recall": 1.0,
+  "claim_changed_by_checker": 0,
+  "rows": [
+    {
+      "id": "bid_clean",
+      "ok": true,
+      "expected": [],
+      "got": [],
+      "claim_changed": false,
+      "snippets": []
+    },
+    {
+      "id": "bid_padded",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_padded_bid"
+      ],
+      "got": [
+        "CONSISTENCY_padded_bid"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "contractor total $14,800 is 2.6x our rate-table high $5,760 for 2 item(s)"
+      ]
+    },
+    {
+      "id": "bid_padded_lines",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_padded_bid"
+      ],
+      "got": [
+        "CONSISTENCY_padded_bid"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "contractor total $4,450 is 11.7x our rate-table high $380 for 1 item(s)"
+      ]
+    },
+    {
+      "id": "homeowner_clean",
+      "ok": true,
+      "expected": [],
+      "got": [],
+      "claim_changed": false,
+      "snippets": []
+    },
+    {
+      "id": "homeowner_undamaged_laptop",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_claimed_undamaged",
+        "CONSISTENCY_claimed_undamaged"
+      ],
+      "got": [
+        "CONSISTENCY_claimed_undamaged",
+        "CONSISTENCY_claimed_undamaged"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor)",
+        "claims 'electronics_undamaged' but the scene records it present and undamaged (severity 0, 1.45 m above floor)"
+      ]
+    },
+    {
+      "id": "homeowner_total_loss",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_total_loss_claim"
+      ],
+      "got": [
+        "CONSISTENCY_total_loss_claim"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "asserts total loss, but 21/24 line items are repairable under $5,000"
+      ]
+    },
+    {
+      "id": "homeowner_mixed",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_claimed_undamaged"
+      ],
+      "got": [
+        "CONSISTENCY_claimed_undamaged"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor)"
+      ]
+    }
+  ]
+}

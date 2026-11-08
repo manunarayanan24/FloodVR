@@ -3,8 +3,8 @@
 The privileged zone starts here. This code never sees raw untrusted text:
 evidence arrives as `ExtractedEvidence`, which is schema-validated and bounded.
 
-The run is split into stages on `Run` (guard -> intake -> adjudicate -> triage ->
-finalize). `assess()` runs them in the fixed order. `agents.pipeline.planner`
+The run is split into stages on `Run` (guard -> intake -> adjudicate ->
+consistency -> triage -> finalize). `assess()` runs them in the fixed order. `agents.pipeline.planner`
 lets Nemotron choose the order with tool calls; `Run` enforces the
 preconditions either way (intake refuses before the guard, finalize runs any
 required stage the planner skipped), so the LLM decides sequencing, never
@@ -37,7 +37,7 @@ class StageOrderError(RuntimeError):
     """A stage was called before the stage it depends on."""
 
 
-REQUIRED_STAGES = ("guard", "intake", "adjudicate", "triage")
+REQUIRED_STAGES = ("guard", "intake", "adjudicate", "consistency", "triage")
 
 
 class Run:
@@ -231,6 +231,11 @@ class Run:
         return {"line_items": len(self.line_items), "wind_driven_rain": wdr,
                 "needs_human": len(self.needs_human), "undamaged": len(self.undamaged)}
 
+    def consistency(self) -> dict:
+        """Fraud checker: evidence vs scene. Findings only; never edits the claim."""
+        from agents.pipeline import consistency
+        return consistency.run_stage(self)
+
     def triage(self) -> dict:
         if "triage" in self.done:
             return {"already_done": True}
@@ -338,5 +343,6 @@ def assess(req: AssessRequest) -> ClaimDraft:
     run.guard()
     run.intake()
     run.adjudicate()
+    run.consistency()
     run.triage()
     return run.finalize()

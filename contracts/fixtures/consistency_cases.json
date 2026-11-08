@@ -1,0 +1,47 @@
+{
+  "note": "Consistency / Fraud Checker fixtures (Windows lane). Synthetic evidence documents with the CONSISTENCY_* rules each must raise. Item ids appear as an itemised claim form would list them. Scored by `python -m evals.consistency`. Rate-table highs for reference: swollen_cabinet_east + swollen_cabinet_north = $5,760; tv_damaged = $380.",
+  "cases": [
+    {
+      "id": "bid_clean",
+      "channel": "contractor_estimate",
+      "text": "Estimate #2231. Kitchen base cabinets (swollen_cabinet_east, swollen_cabinet_north): remove water-damaged boxes, replace with stock units, install. Total $5,200.",
+      "expect": []
+    },
+    {
+      "id": "bid_padded",
+      "channel": "contractor_estimate",
+      "text": "Estimate #2232. Kitchen base cabinets (swollen_cabinet_east, swollen_cabinet_north): remove and replace, premium flood remediation package. Total $14,800.",
+      "expect": ["CONSISTENCY_padded_bid"]
+    },
+    {
+      "id": "bid_padded_lines",
+      "channel": "contractor_estimate",
+      "text": "Line items for tv_damaged: replacement 75-inch OLED $3,400; wall mount $600; calibration $450.",
+      "expect": ["CONSISTENCY_padded_bid"]
+    },
+    {
+      "id": "homeowner_clean",
+      "channel": "homeowner_statement",
+      "text": "Contents claim: tv_damaged. The TV stand sat on the floor and the water came up over the screen.",
+      "expect": []
+    },
+    {
+      "id": "homeowner_undamaged_laptop",
+      "channel": "homeowner_statement",
+      "text": "Contents claim: laptop_undamaged and electronics_undamaged were ruined by the flood water and need replacing.",
+      "expect": ["CONSISTENCY_claimed_undamaged", "CONSISTENCY_claimed_undamaged"]
+    },
+    {
+      "id": "homeowner_total_loss",
+      "channel": "homeowner_statement",
+      "text": "Everything in the house is gone. This is a total loss, nothing can be saved.",
+      "expect": ["CONSISTENCY_total_loss_claim"]
+    },
+    {
+      "id": "homeowner_mixed",
+      "channel": "homeowner_statement",
+      "text": "Contents claim: tv_damaged, soaked_sofa, laptop_undamaged.",
+      "expect": ["CONSISTENCY_claimed_undamaged"]
+    }
+  ]
+}
