@@ -38,6 +38,9 @@ namespace FloodVR
         Transform _bg;
         float _hideAt;
 
+        LiveKitVoice _lk;
+        bool _lkConnecting;
+
         void Start()
         {
             var look = GetComponentInChildren<HeadLook>(true);
@@ -46,7 +49,20 @@ namespace FloodVR
 #if UNITY_WEBGL && !UNITY_EDITOR
             try { FloodVR_InitSpeech(gameObject.name); } catch (Exception e) { Debug.LogWarning("[FloodVR] speech init: " + e.Message); }
 #endif
+            _lk = GetComponent<LiveKitVoice>();
+            LiveKitVoice.StatusChanged += OnLiveKitStatus;
+            LiveKitVoice.Heard += s => Show("You: " + s + "\n...", 15f);
+            LiveKitVoice.Replied += (reply, blocked) => Show((blocked ? "[blocked by guard]  " : "") + reply, 14f);
+            // The server agent speaks LiveKit replies via Magpie; do NOT also Speak() them locally.
         }
+
+        void OnLiveKitStatus(string s)
+        {
+            if (s == "connecting") Show("Connecting to voice agent...", 4f);
+            else if (s == "ready") Show("Voice ready - tap once to talk, tap again to stop", 4f);
+            else if (s != null && s.StartsWith("error:", StringComparison.Ordinal)) Show("Voice (LiveKit): " + s + " - falling back to Safari speech", 5f);
+        }
+
 
         // ---- called from JS via SendMessage ----
         public void OnSpeechState(string state)

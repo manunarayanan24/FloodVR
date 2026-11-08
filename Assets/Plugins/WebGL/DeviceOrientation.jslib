@@ -156,6 +156,13 @@ mergeInto(LibraryManager.library, {
     function onTap() {
       var f = window.floodVR;
       if (!f.enteredAt || Date.now() - f.enteredAt < 1500) return; // that tap was "Enter VR"
+      // Primary path: LiveKit (NVIDIA Parakeet in, Magpie out, server-spoken reply).
+      if (window.FloodVRVoice && window.FloodVRVoice.isConnected && window.FloodVRVoice.isConnected()) {
+        f.lkMicOn = !f.lkMicOn;
+        try { window.FloodVRVoice.setMic(!!f.lkMicOn); } catch (e0) {}
+        return;
+      }
+      // Fallback: Safari speech recognition + POST /voice.
       if (listening) { try { rec.stop(); } catch (e1) {} return; }
       try { rec.start(); } catch (e2) { send('OnSpeechState', 'error:start-failed'); }
     }

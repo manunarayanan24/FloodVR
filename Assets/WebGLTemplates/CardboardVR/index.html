@@ -60,6 +60,11 @@
       requestWakeLock();
       goFullscreen();
       document.querySelector("#overlay").style.display = "none";
+      // The Enter VR tap is iOS's user gesture - use it to start the LiveKit voice agent too.
+      try {
+        var inst = window.unityInstance || (typeof unityInstance !== 'undefined' && unityInstance);
+        if (inst) inst.SendMessage("VRRig", "OnEnteredVR");
+      } catch (e) {}
     });
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "visible") requestWakeLock();

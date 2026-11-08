@@ -59,7 +59,8 @@ namespace FloodVR.EditorTools
             // Rig-level features (runtime-created UI, no scene objects needed).
             if (root.GetComponent<StandPointNav>() == null) root.AddComponent<StandPointNav>();   // walk between StandPoints
             if (root.GetComponent<CalloutsClient>() == null) root.AddComponent<CalloutsClient>(); // GET /callouts
-            if (root.GetComponent<VoiceClient>() == null) root.AddComponent<VoiceClient>();       // tap-to-talk, POST /voice
+            if (root.GetComponent<VoiceClient>() == null) root.AddComponent<VoiceClient>();       // tap-to-talk Safari speech fallback
+            if (root.GetComponent<LiveKitVoice>() == null) root.AddComponent<LiveKitVoice>();     // primary voice (LiveKit + NVIDIA Parakeet/Magpie)
 
             var headLook = root.GetComponentInChildren<HeadLook>(true);
             if (headLook != null && headLook.GetComponent<GazeSelector>() == null)
