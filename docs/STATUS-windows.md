@@ -1,11 +1,11 @@
 # Machine 3 (Windows) — AI + security status
 
-**Tunnel (live): https://achieve-custom-pressed-ellen.trycloudflare.com** (restarted 2026-11-08 08:36 after the PC slept;
-the old `starter-king-jackson-avon` URL is dead). `/health` ok, live NVIDIA, audit chain intact.
+**Tunnel (live): https://filters-bringing-lou-sagem.trycloudflare.com** (restarted 2026-11-08 ~13:50 after the previous session ended;
+older tunnel URLs are dead). `/health` ok, live NVIDIA, audit chain intact.
 Console: `<tunnel>/console` · Voice test: `<tunnel>/voice-test`.
 
 **Mac 2:** the deployed app still has the old URL in `Assets/StreamingAssets/config.json`. Until it is rebuilt, open
-`https://web-gamma-three-xsqthicx3g.vercel.app/?api=https://achieve-custom-pressed-ellen.trycloudflare.com`
+`https://web-gamma-three-xsqthicx3g.vercel.app/?api=https://filters-bringing-lou-sagem.trycloudflare.com`
 (ApiConfig's `?api=` override, remembered in localStorage).
 
 Owner: Abhinav. Lane: `agents/`, `evals/`, `contracts/` except `contracts/samples/`, `docs/STATUS-windows.md`,
