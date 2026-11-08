@@ -5,7 +5,7 @@
 ## Build order (lead addendum a→i) — progress
 
 - [x] **a. Two security numbers recorded** — `evals/headline.py` merges detection (results.json) + end-to-end impact (endtoend.json) into `results.json["headline"]`, served by `GET /results`, top of `evals/report.html`. Held-out #2: **detection miss 32/60 (53.3%)**, **claim changed 0/60 (0.0%)** guard ON and OFF, live LLM intake.
-- [ ] b. Vision Inspector
+- [x] **b. Vision Inspector** — `agents/pipeline/vision.py`, `GET /vision` (cached in `evals/vision.json`; ~9 VLM calls/run). Nemotron VL picks visible damage from a closed list + transcribes text; every transcription → guard (`vlm_output`). **Live: 5 correct / 5 extra detections (precision 50%, recall 31%), 3/7 unique items.** Fridge note transcribed in 2/3 kitchen shots, **blocked in 1/3** — the note's text overflows its yellow backing and wraps one word per line, so the VLM reads fragments (request to Mac 1 below). Low-poly renders: not a real-world detection score. VLM picks never set peril/coverage/cost.
 - [ ] c. Orchestrator tool calling (Nemotron)
 - [ ] d. Consistency / Fraud Checker
 - [ ] e. Claim Writer

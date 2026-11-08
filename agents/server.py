@@ -133,6 +133,17 @@ def attack_demo(req: AttackDemoRequest) -> JSONResponse:
     })
 
 
+@app.get("/vision")
+def vision() -> dict:
+    """Vision Inspector result (Nemotron VL vs screens.json), from the cache that
+    `python -m agents.pipeline.vision` writes. Never runs 9 VLM calls per request."""
+    from agents.pipeline.vision import cached
+    data = cached()
+    if not data:
+        raise HTTPException(404, "no vision run yet — run `python -m agents.pipeline.vision`")
+    return data
+
+
 @app.get("/results")
 def results() -> dict:
     """Latest eval numbers, for the console. Written by `python -m evals.run`."""
