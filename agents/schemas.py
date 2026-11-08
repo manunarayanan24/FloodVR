@@ -53,6 +53,7 @@ class Channel(str, Enum):
     vlm_output = "vlm_output"
     filename_metadata = "filename_metadata"
     adjuster_notes = "adjuster_notes"
+    voice_transcript = "voice_transcript"
 
 
 class Position(BaseModel):

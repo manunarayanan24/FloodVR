@@ -2,12 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://floodvr.local/contracts/voice.schema.json",
   "title": "FloodVR voice notes",
-  "description": "Request and response for POST /voice. The adjuster taps to talk in VR, Safari speech recognition produces a transcript, and this turns it into a structured update or a short spoken answer. Proposed by Windows for Mac 2 to consume — comment before building against it.",
+  "description": "Voice notes. LIVE on the Windows tunnel. Two transports, one brain:\n(1) LiveKit (primary): POST /voice/token -> {url, token, room:'floodvr', identity, expires_in_s}; the iPhone joins the room and publishes its mic while the adjuster taps. The Windows worker (agents/voice/worker.py) transcribes with NVIDIA Riva Parakeet, calls the same Voice Notes agent, speaks the reply with Riva Magpie, and publishes the full response JSON on the data channel, topic 'floodvr.voice'. The phone may publish {\"gaze_item_id\": \"...\"} on topic 'floodvr.gaze'. POST /voice/token returns 503 until LiveKit credentials are configured.\n(2) Text fallback: POST /voice with the request body below (Safari speech recognition).\nThe transcript is UNTRUSTED and guarded first (kind=refused when blocked). The spoken reply is a server template over claim data, never LLM prose. Updates are PROPOSALS (status 'proposed', with proposal_id) that change nothing until POST /voice/confirm {proposal_id, accept}. GET /voice/pending lists them. Voice can never touch coverage, peril or cost.",
   "type": "object",
   "$defs": {
     "request": {
       "type": "object",
-      "required": ["transcript"],
+      "required": [
+        "transcript"
+      ],
       "additionalProperties": false,
       "properties": {
         "transcript": {
@@ -31,12 +33,21 @@
     },
     "response": {
       "type": "object",
-      "required": ["kind", "spoken_reply", "guard"],
+      "required": [
+        "kind",
+        "spoken_reply",
+        "guard"
+      ],
       "additionalProperties": false,
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["answer", "update", "both", "refused"],
+          "enum": [
+            "answer",
+            "update",
+            "both",
+            "refused"
+          ],
           "description": "answer = a question was answered. update = the claim draft gained a note. refused = the guard blocked the transcript."
         },
         "spoken_reply": {
@@ -49,47 +60,164 @@
           "description": "Structured changes proposed by the note. These are PROPOSALS recorded on the draft; they never alter coverage or cost on their own.",
           "items": {
             "type": "object",
-            "required": ["item_id", "field", "value"],
+            "required": [
+              "proposal_id",
+              "item_id",
+              "field",
+              "value",
+              "status"
+            ],
             "additionalProperties": false,
             "properties": {
-              "item_id": { "type": "string" },
+              "item_id": {
+                "type": "string"
+              },
               "field": {
                 "type": "string",
-                "enum": ["adjuster_note", "disputed", "needs_photo", "severity_opinion", "access_blocked"],
+                "enum": [
+                  "adjuster_note",
+                  "disputed",
+                  "needs_photo",
+                  "severity_opinion",
+                  "access_blocked"
+                ],
                 "description": "Deliberately NOT coverage, peril or estimate. A spoken sentence cannot move money or change a policy determination."
               },
-              "value": { "type": "string", "maxLength": 300 }
+              "value": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "proposal_id": {
+                "type": "string",
+                "description": "Pass to POST /voice/confirm."
+              },
+              "status": {
+                "enum": [
+                  "proposed",
+                  "confirmed",
+                  "rejected"
+                ]
+              }
             }
           }
         },
         "citations": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "What the answer was grounded in, e.g. policy:FL-EXCL-1, manifest:kitchen_ceiling_stain."
         },
         "guard": {
           "type": "object",
-          "required": ["blocked", "findings"],
+          "required": [
+            "blocked",
+            "findings"
+          ],
           "additionalProperties": false,
           "properties": {
-            "blocked": { "type": "boolean" },
+            "blocked": {
+              "type": "boolean"
+            },
             "findings": {
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["rule", "snippet", "layer"],
+                "required": [
+                  "rule",
+                  "snippet",
+                  "layer"
+                ],
                 "additionalProperties": false,
                 "properties": {
-                  "rule": { "type": "string" },
-                  "snippet": { "type": "string", "maxLength": 400 },
-                  "layer": { "type": "string", "enum": ["rules", "guard_model", "llm_judge", "canary", "bounds", "consistency"] }
+                  "rule": {
+                    "type": "string"
+                  },
+                  "snippet": {
+                    "type": "string",
+                    "maxLength": 400
+                  },
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "rules",
+                      "guard_model",
+                      "llm_judge",
+                      "canary",
+                      "bounds",
+                      "consistency",
+                      "output"
+                    ]
+                  }
                 }
               }
             }
           }
+        },
+        "classifier": {
+          "type": "string",
+          "description": "Model id that classified the transcript, or 'regex' offline."
+        },
+        "standpoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "confirm_request": {
+      "type": "object",
+      "required": [
+        "proposal_id",
+        "accept"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "proposal_id": {
+          "type": "string"
+        },
+        "accept": {
+          "type": "boolean"
+        }
+      }
+    },
+    "token_response": {
+      "type": "object",
+      "required": [
+        "url",
+        "token",
+        "room",
+        "identity",
+        "expires_in_s"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "wss:// LiveKit server"
+        },
+        "token": {
+          "type": "string",
+          "description": "JWT: roomJoin, canPublish, canSubscribe, canPublishData for room floodvr"
+        },
+        "room": {
+          "const": "floodvr"
+        },
+        "identity": {
+          "type": "string"
+        },
+        "expires_in_s": {
+          "type": "integer"
         }
       }
     }
   },
-  "oneOf": [{ "$ref": "#/$defs/request" }, { "$ref": "#/$defs/response" }]
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    }
+  ]
 }

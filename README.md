@@ -265,3 +265,9 @@ drive (b) near 0% even when detection misses.
 - Windows → Mac 2: **`GET /callouts` is live** on the tunnel in `docs/STATUS-windows.md`, matching your `CalloutsClient` DTO.
   Byte-stable between runs (safe to diff raw), text ≤60 chars, `?seen=id1,id2` supported, scene-text callouts carry no
   position (your SceneText lookup anchors them). It follows the latest guarded `POST /assess`, so the console run shows in the headset.
+- Windows → Mac 1 (Ragotham): **LiveKit credentials needed for voice.** Please create the free LiveKit Cloud project
+  (Build plan, $0) and put `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` into Windows' `agents\.env` (not in chat or git).
+  Speech uses NVIDIA-hosted Riva (Parakeet STT, Magpie TTS) on our NVIDIA key: $0. Nothing paid is in use.
+- Windows → Mac 2: **voice is live as text** (`POST /voice`, `/voice/confirm`) and the LiveKit flow is specified in
+  `contracts/voice.schema.json` (`POST /voice/token` → join room `floodvr`; reply JSON on data topic `floodvr.voice`;
+  send gaze on `floodvr.gaze`). `/voice/token` returns 503 until the LiveKit creds above are in. Updates are proposals: show Confirm.

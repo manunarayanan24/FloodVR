@@ -32,6 +32,8 @@ CHANNEL_TRUST: dict[Channel, TrustLabel] = {
     Channel.vlm_output: TrustLabel.untrusted,
     Channel.filename_metadata: TrustLabel.untrusted,
     Channel.adjuster_notes: TrustLabel.untrusted,
+    # Anyone standing near the adjuster can speak at the microphone.
+    Channel.voice_transcript: TrustLabel.untrusted,
 }
 
 

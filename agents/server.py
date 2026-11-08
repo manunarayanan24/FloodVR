@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from agents import audit, guard, settings
 from agents.llm import LLMUnavailable, vision_read
 from agents.pipeline.orchestrator import assess
@@ -175,6 +177,60 @@ def callouts(seen: str = "") -> dict:
     else:
         draft, manifest = _baseline()
     return build(draft, manifest, {s for s in seen.split(",") if s})
+
+
+class VoiceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    transcript: str = Field(max_length=4000)
+    standpoint: str | None = Field(default=None, max_length=80)
+    gaze_item_id: str | None = Field(default=None, max_length=80)
+    audit_trail_id: str | None = Field(default=None, max_length=80)
+
+
+class VoiceConfirm(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    proposal_id: str = Field(max_length=40)
+    accept: bool
+
+
+@app.post("/voice")
+def voice(req: VoiceRequest) -> dict:
+    """Text path for voice (Safari speech recognition fallback; the LiveKit worker
+    uses the same function). contracts/voice.schema.json. The transcript is
+    UNTRUSTED; updates are proposals that need POST /voice/confirm."""
+    from agents.voice import notes
+    if _LAST["draft"] is not None:
+        draft, manifest = _LAST["draft"], _LAST["manifest"]
+    else:
+        draft, manifest = _baseline()
+    return notes.handle(req.transcript, gaze_item_id=req.gaze_item_id,
+                        standpoint=req.standpoint, audit_trail_id=req.audit_trail_id,
+                        draft=draft, manifest=manifest)
+
+
+@app.post("/voice/confirm")
+def voice_confirm(req: VoiceConfirm) -> dict:
+    """The adjuster accepts or rejects one proposed voice update."""
+    from agents.voice import notes
+    res = notes.confirm(req.proposal_id, req.accept)
+    if not res["ok"]:
+        raise HTTPException(404 if "unknown" in res["error"] else 409, res["error"])
+    return res
+
+
+@app.get("/voice/pending")
+def voice_pending() -> dict:
+    from agents.voice import notes
+    return {"proposals": list(notes.PENDING.values())}
+
+
+@app.post("/voice/token")
+def voice_token() -> dict:
+    """LiveKit join token for the iPhone (room `floodvr`). 503 until LIVEKIT_* are set."""
+    from agents.voice import token
+    if not token.configured():
+        raise HTTPException(503, "LiveKit not configured on the server; use POST /voice (text) instead")
+    return token.mint()
 
 
 @app.get("/measurements")
