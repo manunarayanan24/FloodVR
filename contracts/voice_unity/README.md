@@ -1,3 +1,28 @@
+# OPEN MIC (current, 2026-11-08) — what Mac 2 must do
+
+Push-to-talk is gone. `/voice/client.js` (served by the Windows server, no rebuild needed for it) now
+turns the mic on at connect and keeps it on; the agent answers ~2 s after the adjuster stops talking,
+and ignores its own voice coming back through the speaker. `setMic()` is now a no-op, so the existing
+tap toggle in `DeviceOrientation.jslib` is harmless.
+
+**Blocking bug in the current app:** nothing calls `LiveKitVoice.Connect()`, so LiveKit never starts
+in the VR app (taps fall back to Safari speech). Fix, then rebuild + redeploy:
+
+1. `Assets/Scripts/VR/VoiceClient.cs`, end of `Start()`:
+   ```csharp
+   if (_lk != null) ApiConfig.WhenReady(b => _lk.Connect());
+   ```
+   (Connecting from the "Enter VR" tap is even better for iOS; if audio is blocked at first, the client
+   unlocks it on the next tap anywhere.)
+2. Same file, `OnLiveKitStatus`: change the "ready" text to `"Voice ready - just talk"` and show
+   `"Microphone blocked - allow the mic and reload"` when the status starts with `error: microphone`.
+3. Rebuild, redeploy, test on the iPhone: enter VR, allow the mic, say "How high did the water get?",
+   pause. Captions (`OnVoiceHeard` / `OnVoiceReply`) appear on the HUD; the agent speaks the answer.
+
+Optional: `window.FloodVRVoice.setMuted(true/false)` for a privacy mute.
+
+---
+
 # LiveKit voice for the headset (for Ayushmaan / Mac 2)
 
 The Windows side is live: LiveKit Cloud project, NVIDIA voice agent `floodvr-voice`

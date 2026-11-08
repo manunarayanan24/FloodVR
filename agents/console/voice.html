@@ -13,7 +13,7 @@
   button { font:600 18px system-ui; color:var(--bg); background:var(--accent); border:0; border-radius:14px;
            width:100%; padding:22px; touch-action:none; user-select:none; -webkit-user-select:none; }
   button:disabled { opacity:.45; }
-  #talk.on { background:var(--hot); }
+  #mute.on { background:var(--hot); }
   #captions { margin-top:18px; display:grid; gap:10px; }
   .cap { background:var(--panel); border-radius:12px; padding:12px 14px; font-size:20px; line-height:1.35; }
   .cap small { display:block; color:var(--muted); font:12px ui-monospace, monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
@@ -24,10 +24,10 @@
 </head>
 <body>
 <h1>FloodVR voice</h1>
-<div id="status">tap Connect</div>
+<div id="status">tap Connect, then just talk (open mic)</div>
 <button id="connect">Connect</button>
 <div style="height:12px"></div>
-<button id="talk" disabled>Hold to talk</button>
+<button id="mute" disabled>Mute</button>
 <div id="captions" aria-live="polite">
   <div class="cap"><small>You said</small><span id="capYou">-</span></div>
   <div class="cap"><small>Agent</small><span id="capAgent">-</span></div>
@@ -35,8 +35,10 @@
 <div id="log"></div>
 <script src="/voice/client.js"></script>
 <script>
+  // Open mic: connect once, then speak normally and pause ~2 s; the agent answers.
   // Every string below is set with textContent, never innerHTML.
   var $ = function (id) { return document.getElementById(id); };
+  var muted = false;
   function add(label, text) {
     var d = document.createElement("div"); d.className = "msg";
     var s = document.createElement("small"); s.textContent = label;
@@ -44,40 +46,29 @@
     $("log").prepend(d);
   }
   FloodVRVoice.onStatus(function (s) {
-    $("status").textContent = s;
-    $("talk").disabled = !(s === "ready" || s === "listening");
+    $("status").textContent = s === "listening" ? "listening - just talk, then pause" : s;
+    $("mute").disabled = !(s === "listening" || s === "muted" || s === "ready");
   });
-  var waitTimer = null;
   FloodVRVoice.onHeard(function (t) {
     $("capYou").textContent = t; $("capAgent").textContent = "thinking...";
     add("heard", t);
   });
   FloodVRVoice.onReply(function (r) {
-    clearTimeout(waitTimer);
     $("capAgent").textContent = r.spoken_reply || "";
     add("agent (" + r.kind + ")", r.spoken_reply || "");
     (r.updates || []).forEach(function (u) { add("proposal", u.field + " on " + u.item_id + ": " + u.value); });
   });
   $("connect").addEventListener("click", function () {
     $("connect").disabled = true;
-    FloodVRVoice.connect(location.origin).then(function () { $("connect").textContent = "Connected"; })
+    FloodVRVoice.connect(location.origin).then(function () { $("connect").textContent = "Connected - open mic"; })
       .catch(function () { $("connect").disabled = false; });
   });
-  var talk = $("talk");
-  function down(e) { e.preventDefault(); talk.classList.add("on"); FloodVRVoice.setMic(true); }
-  function up(e) {
-    e.preventDefault(); talk.classList.remove("on"); FloodVRVoice.setMic(false);
-    $("capYou").textContent = "(transcribing...)";
-    clearTimeout(waitTimer);
-    waitTimer = setTimeout(function () {
-      if ($("capYou").textContent === "(transcribing...)")
-        $("capYou").textContent = "(nothing heard - hold the button while you speak, then release)";
-    }, 8000);
-  }
-  talk.addEventListener("pointerdown", down);
-  talk.addEventListener("pointerup", up);
-  talk.addEventListener("pointercancel", up);
-  talk.addEventListener("pointerleave", function (e) { if (talk.classList.contains("on")) up(e); });
+  $("mute").addEventListener("click", function () {
+    muted = !muted;
+    $("mute").classList.toggle("on", muted);
+    $("mute").textContent = muted ? "Unmute" : "Mute";
+    FloodVRVoice.setMuted(muted);
+  });
 </script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 // FloodVR LiveKit voice for Unity WebGL (Mac 2 lane: copy to Assets/Scripts/VR/LiveKitVoice.cs,
 // and FloodVRVoice.jslib to Assets/Plugins/WebGL/). Put it on the VRRig root next to VoiceClient.
 //
-// Flow: first tap -> Connect() (joins LiveKit room "floodvr"; the NVIDIA voice agent on the
-// Windows PC joins too). Hold/tap -> SetMic(true), release -> SetMic(false). The agent hears
+// OPEN MIC: call Connect() once (e.g. from VoiceClient.Start via ApiConfig.WhenReady); the mic
+// stays on and the agent answers after a pause. SetMic() is a no-op in open-mic mode. The agent hears
 // the question (Parakeet), answers from claim data and SPEAKS the reply itself (Magpie), so do
 // NOT also call FloodVR_Speak for LiveKit replies. Text arrives in OnVoiceReply for the HUD.
 // Replies are untrusted-safe server templates, but show them with rich text OFF anyway.

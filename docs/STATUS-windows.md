@@ -26,6 +26,7 @@ Owner: Abhinav. Lane: `agents/`, `evals/`, `contracts/` except `contracts/sample
     on a 27-question DEV set over the weak topics (built from it, so not a held-out number). Guard unchanged:
     instructions refused, voice can't touch cost.
   - This file and the README §8 Windows line refreshed.
+- **Voice is OPEN MIC (2026-11-08):** `/voice/client.js` turns the mic on at connect and keeps it on (echo cancellation, noise suppression); the agent answers 2 s after the adjuster stops talking (VAD + final transcripts), never interrupts itself, and ignores speech heard while it talks or that repeats its last reply. `setMic()` is a no-op so the app's old tap toggle is harmless; `setMuted()` added; `/voice-test` has a Mute button and shows a real error if the mic is blocked. Tested: two-part question with a pause → one answer; the agent's own reply played back into the room → ignored. **Mac 2 must add one `Connect()` call** (the app never starts LiveKit today) — `contracts/voice_unity/README.md`.
 - **Doing:** nothing. Waiting for Mac 1's re-export to re-run the Vision Inspector cache (`evals/vision.json`).
 - **Blocked:** none. Keep this PC awake (sleep set to Never) — the quick tunnel URL changes if it sleeps.
 - **Not re-run:** the Nemotron-planner end-to-end eval (`--planner`) on the new budgeted planner. Its last numbers

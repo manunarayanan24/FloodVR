@@ -1,21 +1,31 @@
 /* FloodVR voice client (browser / Unity WebGL). Served at GET /voice/client.js.
  *
- *   await FloodVRVoice.connect("https://<tunnel>")   // must run inside a tap (iOS audio + mic)
- *   FloodVRVoice.setMic(true)  ... FloodVRVoice.setMic(false)   // push to talk
+ * OPEN MIC (default): connect once and just talk. The mic stays on; the agent
+ * answers after you pause (~2 s). No button to hold.
+ *
+ *   await FloodVRVoice.connect("https://<tunnel>")   // call once, ideally from a tap (iOS)
+ *   FloodVRVoice.setMuted(true / false)              // optional privacy mute
  *   FloodVRVoice.sendGaze("furnace_flooded")         // what the adjuster is looking at
  *   FloodVRVoice.onReply(r => ...)    // r = /voice response JSON (kind, spoken_reply, updates, ...)
- *   FloodVRVoice.onHeard(t => ...)    // what the agent transcribed
- *   FloodVRVoice.onStatus(s => ...)   // "connecting" | "waiting for agent" | "ready" | "listening" | "error: ..."
+ *   FloodVRVoice.onHeard(t => ...)    // what the agent transcribed (caption)
+ *   FloodVRVoice.onStatus(s => ...)   // "connecting" | "waiting for agent" | "ready" | "listening" | "muted" | "error: ..."
  *
- * The agent's spoken reply plays automatically. Replies arrive on data topic
- * floodvr.voice, transcripts on floodvr.heard. See contracts/voice.schema.json.
+ * setMic(on) is kept for old callers but does nothing in open-mic mode, so an
+ * old tap-to-talk toggle can't switch the mic off. connect(api, {openMic:false})
+ * restores push-to-talk (setMic + floodvr.ptt signals).
+ *
+ * The agent's spoken reply plays automatically. iOS only allows audio after a
+ * tap, so if playback is blocked we unlock it on the next tap anywhere.
+ * Replies arrive on data topic floodvr.voice, captions on floodvr.heard.
  */
 (function () {
   "use strict";
   var LK_SRC = "https://cdn.jsdelivr.net/npm/livekit-client@2.9.5/dist/livekit-client.umd.min.js";
-  var TRAIL_MS = 1200; // keep the mic open briefly after release so end-of-speech is detected
+  var TRAIL_MS = 1200; // push-to-talk only: keep the mic open briefly after release
+  var MIC_OPTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
-  var room = null, micTimer = null, cbs = { reply: [], heard: [], status: [] };
+  var room = null, micTimer = null, openMic = true, muted = false, micBlocked = false;
+  var cbs = { reply: [], heard: [], status: [] };
   var dec = new TextDecoder(), enc = new TextEncoder();
 
   function emit(kind, v) { cbs[kind].forEach(function (f) { try { f(v); } catch (e) { console.error(e); } }); }
@@ -39,15 +49,33 @@
     return found;
   }
 
-  async function connect(apiBase) {
+  function settle() {
+    if (!room) return;
+    if (!agentPresent()) { status("waiting for agent"); return; }
+    status("ready");
+    if (openMic) status(micBlocked ? "error: microphone blocked - allow the mic for this site and reload"
+                                   : muted ? "muted" : "listening");
+  }
+
+  // iOS/Safari: audio may only start after a user gesture. Retry on any tap.
+  function unlockAudio() {
+    if (room && !room.canPlaybackAudio) room.startAudio().catch(function () {});
+  }
+  ["touchend", "pointerdown", "click", "keydown"].forEach(function (ev) {
+    document.addEventListener(ev, unlockAudio, true);
+  });
+
+  async function connect(apiBase, opts) {
     if (room) return;
+    openMic = !(opts && opts.openMic === false);
+    var base = String(apiBase).replace(/\/$/, "");
     status("connecting");
     var LK = await loadSdk();
-    var res = await fetch(String(apiBase).replace(/\/$/, "") + "/voice/token", { method: "POST" });
+    var res = await fetch(base + "/voice/token", { method: "POST" });
     if (!res.ok) throw new Error("token HTTP " + res.status);
     var tok = await res.json();
 
-    room = new LK.Room({ adaptiveStream: true, dynacast: true });
+    room = new LK.Room({ adaptiveStream: true, dynacast: true, audioCaptureDefaults: MIC_OPTS });
     room.on(LK.RoomEvent.TrackSubscribed, function (track) {
       if (track.kind === "audio") {
         var el = track.attach();
@@ -65,20 +93,28 @@
         emit("heard", text);
       }
     });
-    room.on(LK.RoomEvent.ParticipantConnected, function () { if (agentPresent()) status("ready"); });
+    room.on(LK.RoomEvent.ParticipantConnected, function () { settle(); });
     // If the agent drops (e.g. the PC restarted it), ask for it again.
     room.on(LK.RoomEvent.ParticipantDisconnected, function (p) {
       if (String(p.identity).indexOf("agent") === 0 && !agentPresent()) {
         status("waiting for agent");
-        nudgeAgent(String(apiBase).replace(/\/$/, ""), 0);
+        nudgeAgent(base, 0);
       }
     });
     room.on(LK.RoomEvent.Disconnected, function () { room = null; status("disconnected"); });
 
     await room.connect(tok.url, tok.token);
-    await room.startAudio(); // unlocks playback; call connect() from a tap
-    status(agentPresent() ? "ready" : "waiting for agent");
-    if (!agentPresent()) nudgeAgent(String(apiBase).replace(/\/$/, ""), 0);
+    try { await room.startAudio(); } catch (e) { /* unlocked on the next tap */ }
+    if (openMic) {
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true, MIC_OPTS);
+        micBlocked = false;
+      } catch (e) {
+        micBlocked = true;
+      }
+    }
+    settle();
+    if (!agentPresent()) nudgeAgent(base, 0);
   }
 
   // If the agent has not joined after ~10 s, ask the server to dispatch it again.
@@ -91,18 +127,28 @@
     }, 10000);
   }
 
+  async function setMuted(m) {
+    if (!room) return;
+    muted = !!m;
+    await room.localParticipant.setMicrophoneEnabled(!muted, MIC_OPTS);
+    settle();
+  }
+
+  // Push-to-talk (only when connected with {openMic:false}). In open-mic mode
+  // this is a no-op so an old tap-to-talk toggle can't switch the mic off.
   async function setMic(on) {
     if (!room) throw new Error("connect() first");
+    if (openMic) { unlockAudio(); return; }
     clearTimeout(micTimer);
     if (on) {
       ptt("pressed");
-      await room.localParticipant.setMicrophoneEnabled(true);
+      await room.localParticipant.setMicrophoneEnabled(true, MIC_OPTS);
       status("listening");
     } else {
       micTimer = setTimeout(function () {
         ptt("released"); // tells the agent the question is complete
         if (room) room.localParticipant.setMicrophoneEnabled(false);
-        status(agentPresent() ? "ready" : "waiting for agent");
+        settle();
       }, TRAIL_MS);
     }
   }
@@ -122,11 +168,12 @@
   async function disconnect() { if (room) await room.disconnect(); room = null; }
 
   window.FloodVRVoice = {
-    connect: function (apiBase) {
-      return connect(apiBase).catch(function (e) { status("error: " + e.message); room = null; throw e; });
+    connect: function (apiBase, opts) {
+      return connect(apiBase, opts).catch(function (e) { status("error: " + e.message); room = null; throw e; });
     },
-    setMic: setMic, sendGaze: sendGaze, disconnect: disconnect,
+    setMic: setMic, setMuted: setMuted, sendGaze: sendGaze, disconnect: disconnect,
     isConnected: function () { return !!room; },
+    isOpenMic: function () { return openMic; },
     onReply: function (f) { cbs.reply.push(f); },
     onHeard: function (f) { cbs.heard.push(f); },
     onStatus: function (f) { cbs.status.push(f); },

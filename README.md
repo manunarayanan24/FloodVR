@@ -242,3 +242,4 @@ fraud all flagged, callouts react (16 → 18) and reset, voice token + refusals 
 - **Mac 1 → Windows (after Mac 1 re-exports):** re-run the Vision Inspector cache
   (`evals/vision.json`) and update the vision numbers.
 - **Mac 1 → Mac 2 (after the visual pass):** rebuild, redeploy, re-test on the iPhone.
+- **Windows → Mac 2 (blocking, open mic):** voice is now OPEN MIC (no push-to-talk; server-side, already live). The VR app never calls `LiveKitVoice.Connect()`, so LiveKit never starts in the app. Add `if (_lk != null) ApiConfig.WhenReady(b => _lk.Connect());` at the end of `VoiceClient.Start()`, change the ready text to "Voice ready - just talk", rebuild, redeploy. Steps: `contracts/voice_unity/README.md` (top).

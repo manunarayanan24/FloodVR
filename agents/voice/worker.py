@@ -22,8 +22,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import logging
 import os
+import time
 import urllib.request
 from typing import Any
 
@@ -43,7 +45,8 @@ TOPIC_REPLY = "floodvr.voice"
 TOPIC_GAZE = "floodvr.gaze"
 TOPIC_HEARD = "floodvr.heard"
 TOPIC_PTT = "floodvr.ptt"
-MERGE_PAUSE_S = 2.5    # no push-to-talk signal: answer after this long without new words
+MERGE_PAUSE_S = 2.0    # open mic: answer this long after the adjuster stops talking
+ECHO_TAIL_S = 1.0      # ignore speech heard this soon after the agent stops speaking
 RELEASE_GRACE_S = 1.5  # after the button is released: let the last words arrive
 
 
@@ -149,12 +152,46 @@ async def entrypoint(ctx) -> None:
         pending["parts"] = []
         await _reply(text)
 
+    # Open mic: the phone speaker plays our reply and the mic can pick it up.
+    # Ignore anything heard while the agent is speaking (and briefly after), or
+    # that mostly repeats our last reply. Echo cancellation should catch it
+    # first; this is the backstop so the agent never answers itself.
+    echo: dict[str, Any] = {"speaking": False, "quiet_at": 0.0, "last_reply": ""}
+
+    @session.on("agent_state_changed")
+    def _on_agent_state(ev) -> None:
+        if ev.new_state == "speaking":
+            echo["speaking"] = True
+        elif ev.old_state == "speaking":
+            echo["speaking"], echo["quiet_at"] = False, time.monotonic()
+
+    def _is_echo(text: str) -> bool:
+        if echo["speaking"] or time.monotonic() - echo["quiet_at"] < ECHO_TAIL_S:
+            return True
+        said = set(re.findall(r"[a-z0-9]+", echo["last_reply"].lower()))
+        heard = re.findall(r"[a-z0-9]+", text.lower())
+        return len(heard) >= 3 and sum(w in said for w in heard) / len(heard) >= 0.7
+
+    @session.on("user_state_changed")
+    def _on_user_state(ev) -> None:
+        # Open mic: wait while the adjuster is still talking, answer after a pause.
+        if pending["mode"] != "idle":
+            return
+        if ev.new_state == "speaking" and pending["task"] is not None:
+            pending["task"].cancel()
+            pending["task"] = None
+        elif ev.new_state == "listening" and pending["parts"]:
+            _schedule(MERGE_PAUSE_S)
+
     @session.on("user_input_transcribed")
     def _on_transcript(ev) -> None:
         if not getattr(ev, "is_final", False) or not ev.transcript.strip():
             return
+        if _is_echo(ev.transcript):
+            log.info("voice: ignored (sounded like our own reply)")
+            return
         pending["parts"].append(ev.transcript.strip())
-        if pending["mode"] == "idle":  # no push-to-talk signal: pause-based
+        if pending["mode"] == "idle":  # open mic / no push-to-talk signal: pause-based
             _schedule(MERGE_PAUSE_S)
 
     def _on_ptt(state_name: str) -> None:
@@ -177,11 +214,14 @@ async def entrypoint(ctx) -> None:
                 res = await asyncio.to_thread(_post_voice, transcript, state["gaze"], list(seen))
             except Exception as exc:  # noqa: BLE001 - keep the room alive
                 log.warning("voice call failed: %s", exc)
-                session.say("Sorry, the claim server didn't answer.")
+                session.say("Sorry, the claim server didn't answer.", allow_interruptions=False)
                 return
             await ctx.room.local_participant.publish_data(
                 json.dumps(res).encode(), topic=TOPIC_REPLY, reliable=True)
-            session.say(res.get("spoken_reply", "")[:300])
+            reply = res.get("spoken_reply", "")[:300]
+            echo["last_reply"] = reply
+            # Not interruptible: in open mic our own voice must not cut us off.
+            session.say(reply, allow_interruptions=False)
 
     # An Agent with no LLM: replies come only from /voice via session.say().
     # close_on_disconnect=False: if the phone drops and rejoins, the agent is
@@ -189,7 +229,8 @@ async def entrypoint(ctx) -> None:
     from livekit.agents.voice import room_io
     await session.start(room=ctx.room, agent=Agent(instructions="FloodVR voice relay"),
                         room_options=room_io.RoomOptions(close_on_disconnect=False))
-    session.say("FloodVR voice ready. Tap and ask.")
+    echo["last_reply"] = "FloodVR voice ready. Ask me anything."
+    session.say(echo["last_reply"], allow_interruptions=False)
 
 
 def main() -> None:
