@@ -74,6 +74,8 @@ def assess_endpoint(req: AssessRequest, planner: str = "llm", report: bool = Tru
             untrusted = {f"evidence:{d.doc_id}": d.text for d in req.evidence}
             untrusted.update({f"scene_text:{s.id}": s.text for s in req.manifest.scene_text})
             draft.adjuster_report = write(draft, untrusted)
+        if req.guard_enabled:
+            _LAST.update(draft=draft, manifest=req.manifest)  # headset shows the latest run
         return draft
     except LLMUnavailable as exc:
         raise HTTPException(503, f"model unavailable: {exc}") from exc
@@ -144,6 +146,35 @@ def attack_demo(req: AttackDemoRequest) -> JSONResponse:
             "audit_trail_id": unguarded.audit_trail_id,
         },
     })
+
+
+_LAST: dict = {"draft": None, "manifest": None, "baseline_key": None}
+
+
+def _baseline() -> tuple[ClaimDraft, DamageManifest]:
+    """Fixed-order run on Mac 1's sample manifest, cached until the file changes.
+    No evidence, so no LLM call: fast and identical across polls."""
+    key = SAMPLE_MANIFEST.stat().st_mtime if SAMPLE_MANIFEST.exists() else None
+    if _LAST.get("baseline_key") != key or _LAST.get("baseline") is None:
+        data = (json.loads(SAMPLE_MANIFEST.read_text(encoding="utf-8"))
+                if SAMPLE_MANIFEST.exists() else {"items": []})
+        m = DamageManifest.model_validate(data)
+        _LAST["baseline"] = (assess(AssessRequest(manifest=m.model_copy(deep=True))), m)
+        _LAST["baseline_key"] = key
+    return _LAST["baseline"]
+
+
+@app.get("/callouts")
+def callouts(seen: str = "") -> dict:
+    """Headset callouts (contracts/callouts.schema.json) for the latest guarded /assess
+    run, or a cached baseline run. Same bytes on every poll until a new run happens.
+    `?seen=id1,id2` drops callouts (by callout id or item id) the adjuster has seen."""
+    from agents.pipeline.callouts import build
+    if _LAST["draft"] is not None:
+        draft, manifest = _LAST["draft"], _LAST["manifest"]
+    else:
+        draft, manifest = _baseline()
+    return build(draft, manifest, {s for s in seen.split(",") if s})
 
 
 @app.get("/measurements")

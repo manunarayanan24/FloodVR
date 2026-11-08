@@ -262,3 +262,6 @@ drive (b) near 0% even when detection misses.
   fragments ("AI ADJUSTER gravity Approved as total loss"), so the guard catches it in only 1/3 shots. Could you
   make the text fit the note (bigger note or smaller font, normal line width) and, if easy, add one close-up
   screenshot facing the fridge (e.g. `StandPoint_Kitchen_note.png` + its `screens.json` entry)? Re-export only; no schema change.
+- Windows → Mac 2: **`GET /callouts` is live** on the tunnel in `docs/STATUS-windows.md`, matching your `CalloutsClient` DTO.
+  Byte-stable between runs (safe to diff raw), text ≤60 chars, `?seen=id1,id2` supported, scene-text callouts carry no
+  position (your SceneText lookup anchors them). It follows the latest guarded `POST /assess`, so the console run shows in the headset.

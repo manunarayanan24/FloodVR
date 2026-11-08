@@ -2,12 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://floodvr.local/contracts/callouts.schema.json",
   "title": "FloodVR headset callouts",
-  "description": "Response of GET /callouts. Short in-headset annotations the VR app renders as an arrow or highlight plus one line of text. Proposed by Windows for Mac 2 to consume — comment before building against it.",
+  "description": "Response of GET /callouts \u2014 LIVE on the Windows tunnel. Short in-headset annotations the VR app renders as an arrow or highlight plus one line of text. Reflects the latest guarded POST /assess run, else a cached no-evidence baseline run; the response bytes are identical between runs, so a poller can diff raw text. Query: ?seen=id1,id2 drops callouts whose callout id or item_id is listed. Server keeps text <= 60 chars (schema allows 90). All text is server-side templates over structured data, never evidence or scene text. position = manifest position raised 0.35 m; absent for scene-text (anchor on the SceneText prop by item_id) and whole-house callouts. kind=missed is reserved (the vision inspector picks from a closed list, so it cannot report unlisted damage yet).",
   "type": "object",
-  "required": ["generated_at", "audit_trail_id", "callouts"],
+  "required": [
+    "generated_at",
+    "audit_trail_id",
+    "callouts"
+  ],
   "additionalProperties": false,
   "properties": {
-    "generated_at": { "type": "string", "format": "date-time" },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "audit_trail_id": {
       "type": "string",
       "description": "Ties these callouts to the /assess run that produced them."
@@ -21,46 +28,84 @@
       "maxItems": 40,
       "items": {
         "type": "object",
-        "required": ["id", "item_id", "kind", "text", "priority"],
+        "required": [
+          "id",
+          "item_id",
+          "kind",
+          "text",
+          "priority"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "description": "Stable callout id, unique within the response." },
+          "id": {
+            "type": "string",
+            "description": "Stable callout id, unique within the response."
+          },
           "item_id": {
             "type": "string",
             "description": "Damage id from the manifest, or a scene_text id for kind=blocked."
           },
           "kind": {
             "type": "string",
-            "enum": ["hazard", "missed", "blocked", "measurement", "coverage"],
+            "enum": [
+              "hazard",
+              "missed",
+              "blocked",
+              "measurement",
+              "coverage"
+            ],
             "description": "hazard = dangerous, do not approach. missed = vision found damage not in the manifest. blocked = an injection attempt was caught here (this is the fridge note). measurement = a derived quantity. coverage = a peril/policy determination worth showing."
           },
           "text": {
             "type": "string",
             "maxLength": 90,
-            "description": "ONE line for the headset. Keep under 90 characters — it is read at arm's length through a cardboard lens."
+            "description": "ONE line for the headset. Keep under 90 characters \u2014 it is read at arm's length through a cardboard lens."
           },
           "priority": {
-            "type": "integer", "minimum": 1, "maximum": 5,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
             "description": "1 renders first and largest. Priority-1 hazards are life-safety."
           },
           "position": {
             "type": "object",
-            "required": ["x", "y", "z"],
+            "required": [
+              "x",
+              "y",
+              "z"
+            ],
             "additionalProperties": false,
             "properties": {
-              "x": { "type": "number" },
-              "y": { "type": "number" },
-              "z": { "type": "number" }
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
             },
             "description": "World-space metres, same frame as the manifest. Absent when the callout is not anchored to a point."
           },
           "room": {
             "type": "string",
-            "enum": ["living_room", "kitchen", "hallway", "closet", "whole_house"]
+            "enum": [
+              "living_room",
+              "kitchen",
+              "hallway",
+              "closet",
+              "whole_house"
+            ]
           },
           "color": {
             "type": "string",
-            "enum": ["red", "amber", "blue", "green"],
+            "enum": [
+              "red",
+              "amber",
+              "blue",
+              "green"
+            ],
             "description": "red = hazard, amber = blocked injection, blue = measurement/coverage, green = confirmed undamaged."
           },
           "detail": {

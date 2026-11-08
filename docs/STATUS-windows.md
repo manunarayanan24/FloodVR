@@ -10,7 +10,7 @@
 - [x] **d. Consistency / Fraud Checker** — `agents/pipeline/consistency.py`, a `Run` stage + planner tool `check_consistency`. Deterministic, reads only schema-validated evidence + manifest; raises `layer=consistency` findings (`claimed_undamaged`, `above_waterline`, `padded_bid` >1.25x our rate-table high, `total_loss_claim`), **never edits the claim**. Fixtures `contracts/fixtures/consistency_cases.json` (clean + padded bids, the laptop/electronics trap). `python -m evals.consistency`: **7/7, precision 1.0, recall 1.0, 0 claims changed — offline and with live LLM intake.**
 - [x] **e. Claim Writer** — `agents/pipeline/writer.py`. Nemotron (thinking off, ~3-4 s) writes a 4-paragraph adjuster report from a facts dict built from the finished draft — no evidence or scene text. **Every number in the prose, digits or spelled-out, must appear in the facts** (`number_check`); one retry naming the bad numbers, then a deterministic template. Output guard + shingle leakage check applied. Returned as `adjuster_report` on `POST /assess` (`?report=false` to skip); added to `contracts/claim_draft.schema.json` (with `flow_control`). Live: 18 numbers checked (incl. spelled-out), 0 unsupported. Found on the way: reasoning-mode Nemotron returned its chain of thought as content; `nvidia_chat` now accepts `extra_body` to disable thinking.
 - [x] **f. Measurement tools** — `agents/pipeline/measure.py` recomputes per-room floor area, wall area below the 0.9 m waterline, flood-cut drywall area (to 1.5 m) and baseboard run from raw walls/openings; **cross-check vs Mac 1's exported totals: all 4 rooms match.** House: 80.0 m² floor, 53.28 m² below waterline, 86.1 m² flood cut, 59.2 m baseboard. `costs.json` types gain `per_geometry` rates; estimate = max(table base × severity, rate × quantity), still clamped; each line item carries `quantity` (contract updated) and the ledger records the geometry source. Only `waterline_band` moved ($3,014–$7,319 for 86.1 m² flood cut): claim total now **$23,069–$70,478** (was $22,855–$69,659). `GET /measurements`.
-- [ ] g. `GET /callouts`
+- [x] **g. `GET /callouts` — live.** `agents/pipeline/callouts.py`. 16 callouts on the baseline: 6 priority-1 hazards, the fridge-note `blocked` (amber, anchored by scene-text id), structural/mold hazards, the wind-driven-rain coverage call, waterline 0.90 m + 86.1 m² flood cut, and the two green undamaged contents items. Text ≤60 chars, all server templates (never evidence/scene text). `?seen=` filter; positions from manifest (+0.35 m). Reflects the latest guarded `/assess` (e.g. a claim on `laptop_undamaged` adds an amber "Claim conflicts with the scene" callout), else a cached baseline; byte-stable between runs so Mac 2's 45 s poll doesn't re-render. Schema-checked against `contracts/callouts.schema.json`.
 - [ ] h. Voice via LiveKit (+ `/voice/token`, text `/voice`)
 - [ ] i. Adjuster console
 
@@ -37,7 +37,9 @@ Last updated: 2026-11-07 (new account session; tunnel restarted)
 | `POST` | `/assess` | live | claim draft (`contracts/claim_draft.schema.json`) |
 | `POST` | `/attack-demo` | live | one attack, guarded vs unguarded, side by side |
 | `GET` | `/results` | live | latest eval numbers (`evals/results.json`) |
-| `GET` | `/callouts` | **schema only** | `contracts/callouts.schema.json` — not implemented yet |
+| `GET` | `/callouts` | live | headset callouts, `contracts/callouts.schema.json` (`?seen=`) |
+| `GET` | `/vision` | live | Vision Inspector result (cached) |
+| `GET` | `/measurements` | live | room quantities + cross-check vs Mac 1 export |
 | `POST` | `/voice` | **schema only** | `contracts/voice.schema.json` — not implemented yet |
 
 CORS allows `https://*.vercel.app` and `http://localhost:<port>`.
