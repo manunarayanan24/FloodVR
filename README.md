@@ -145,6 +145,18 @@ the URL changes each restart — current URL lives in `docs/STATUS-windows.md`).
 - Planned: `POST /voice` (transcript → structured update/answer), `GET /callouts` (headset
   callouts: item id, position, one-line text, kind = missed | hazard | blocked)
 
+### 4.5 Runtime flood-state API (`FloodState`, `Assets/Scripts/FloodState.cs`) — for Mac 2's gaze button
+Pure `UnityEngine`-only static class, no `UnityEditor` dependency — works identically in the
+built WebGL player, not just from the `Tools → FloodVR` editor menu.
+- `FloodState.Toggle()` — flips between post-flood (damaged) and pre-flood (clean). Call this
+  from a gaze/tap handler.
+- `FloodState.IsFlooded` (bool, read-only) — current state, for a UI label/icon.
+- `FloodState.Show(bool flooded)` — set an explicit state if you need "go to clean" / "go to
+  damaged" rather than a toggle.
+- Everything it touches (`FloodVisual` components on the house's furniture/decals) is baked
+  into `House.unity` by `Tools → FloodVR → Build House`, so it's already in the built scene —
+  no extra wiring needed on Mac 2's side beyond calling the API.
+
 ---
 
 ## 5. The agent team (Windows)

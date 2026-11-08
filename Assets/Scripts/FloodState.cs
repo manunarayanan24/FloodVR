@@ -8,6 +8,10 @@ namespace FloodVR
     {
         public static bool IsFlooded { get; private set; } = true;
 
+        // Runtime entry point for a gaze/tap button in the VR headset -- flips
+        // between the post-flood (damaged) and pre-flood (clean) view.
+        public static void Toggle() => Show(!IsFlooded);
+
         public static void Show(bool flooded)
         {
             IsFlooded = flooded;
