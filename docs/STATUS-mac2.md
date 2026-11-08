@@ -10,7 +10,7 @@
 
 **Done (round task 4):** `ApiConfig` reads the agents' base URL at runtime: `?api=` in the page URL first, then `StreamingAssets/config.json` (`{"apiBaseUrl": ""}`, new file). `ApiConfig.WhenReady(cb)` / `ApiConfig.Url("/callouts")` for the callouts + voice work.
 
-**Doing:** Round task 2 (first real build, deploy, QR). Not started: Unity is still installing.
+**Doing:** First iPhone test of the deployed build, then StandPoint teleport. Build + deploy done; compiled clean in Unity 6000.0.85f2.
 
 **Blocked:**
 - Editor installed; Web Build Support being added (Windows Build Support was installed by mistake, harmless).
@@ -21,6 +21,6 @@
 **Waiting on others:**
 - Abhinav: `/callouts` and `/voice` schemas in `contracts/` before headset callouts + tap-to-talk are built.
 
-**Deploy URL:** not deployed yet.
+**Deploy URL:** https://web-gamma-three-xsqthicx3g.vercel.app (production alias, public, loads without login). Built headless (Build Web, 9.85 MB, Gzip). Not yet tested on an iPhone.
 
 **Note for the deploy step:** use the short production alias (`https://<project>.vercel.app`) for the QR code. The long per-deployment URL can sit behind Vercel's login wall on some accounts, which would stop an iPhone at a sign-in page.
