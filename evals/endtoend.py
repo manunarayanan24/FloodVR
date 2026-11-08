@@ -255,6 +255,10 @@ def main() -> int:
     }
     OUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {OUT.relative_to(settings.REPO_ROOT)}")
+    from evals.headline import refresh
+    head = refresh()
+    if head and head.get("pitch"):
+        print(f"HEADLINE  {head['pitch']}  (merged into evals/results.json + report.html)")
     return 0
 
 

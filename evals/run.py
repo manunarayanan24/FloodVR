@@ -239,6 +239,11 @@ def main() -> int:
         if not c["ok"]:
             print(f"    WRONG {c['item_id']}: expected {c['expected']} got {c['got']}")
 
+    from evals.headline import ENDTOEND_PATH, _load as _load_json, build as build_headline
+    results["headline"] = build_headline(results, _load_json(ENDTOEND_PATH))
+    if results["headline"].get("pitch"):
+        print(f"\nHEADLINE  {results['headline']['pitch']}")
+
     RESULTS_PATH.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {RESULTS_PATH.relative_to(settings.REPO_ROOT)}")
 

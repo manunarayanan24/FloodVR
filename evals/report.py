@@ -53,6 +53,39 @@ SET_LABELS = {
 SET_ORDER = ("seed", "heldout", "heldout2")
 
 
+def _headline(results: dict[str, Any]) -> str:
+    h = results.get("headline") or {}
+    d, i = h.get("detection"), h.get("impact")
+    if not d:
+        return ""
+    label = SET_LABELS.get(h.get("reported_set", ""), h.get("reported_set", ""))
+    cards = [
+        f'<div class="card"><div class="l">(a) Detection miss &mdash; {html.escape(label)}</div>'
+        f'<div class="n {"bad" if d["miss_rate"] > 0.4 else "warn"}">{_pct(d["miss_rate"])}</div>'
+        f'<div class="l">{d["missed"]}/{d["attacks"]} fresh attacks not spotted</div></div>'
+    ]
+    if i:
+        cls = "ok" if i["impact_rate_guard_on"] == 0 else "bad"
+        cards.append(
+            f'<div class="card"><div class="l">(b) End-to-end impact &mdash; claim changed</div>'
+            f'<div class="n {cls}">{_pct(i["impact_rate_guard_on"])}</div>'
+            f'<div class="l">{i["claims_changed_guard_on"]}/{i["attacks"]} guard ON &middot; '
+            f'{i["claims_changed_guard_off"]}/{i["attacks"]} guard OFF'
+            f'{" &middot; live LLM intake" if i.get("live_intake") else ""}</div></div>')
+    else:
+        cards.append('<div class="card"><div class="l">(b) End-to-end impact</div>'
+                     '<div class="n warn">not measured</div><div class="l">run '
+                     '<code>python -m evals.endtoend</code></div></div>')
+    pitch = (f'<div class="note"><strong>{html.escape(h["pitch"])}</strong> '
+             "Detection is the weak layer; quarantine, schema-only fields, "
+             "deterministic peril/pricing and the constant draft status are the "
+             "strong one. Impact counts any change to payout, peril, coverage or "
+             "status, not only changes in the attacker's favour.</div>"
+             if h.get("pitch") else "")
+    return (f'<h2>The two numbers we report</h2><div class="cards">{"".join(cards)}</div>'
+            + pitch + "<h2>Detection, every set</h2>")
+
+
 def _cards(results: dict[str, Any]) -> str:
     out = []
     for name in SET_ORDER:
@@ -171,6 +204,7 @@ def write_report(results: dict[str, Any], path: Path | None = None) -> Path:
 <p class="sub">{html.escape(results['generated_at'])} &middot;
 layers: rules{' + NVIDIA guard model' if results['layers'].get('guard_model') else ' only'}
 &middot; {'offline' if results.get('offline') else 'live'}</p>
+{_headline(results)}
 {_cards(results)}
 <div class="note">{honesty}</div>
 <h2>Detection by technique</h2>

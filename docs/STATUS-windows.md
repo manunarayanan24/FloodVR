@@ -2,6 +2,18 @@
 
 **Tunnel (live): https://starter-king-jackson-avon.trycloudflare.com** — `/health` ok, live NVIDIA, audit chain intact.
 
+## Build order (lead addendum a→i) — progress
+
+- [x] **a. Two security numbers recorded** — `evals/headline.py` merges detection (results.json) + end-to-end impact (endtoend.json) into `results.json["headline"]`, served by `GET /results`, top of `evals/report.html`. Held-out #2: **detection miss 32/60 (53.3%)**, **claim changed 0/60 (0.0%)** guard ON and OFF, live LLM intake.
+- [ ] b. Vision Inspector
+- [ ] c. Orchestrator tool calling (Nemotron)
+- [ ] d. Consistency / Fraud Checker
+- [ ] e. Claim Writer
+- [ ] f. Measurement tools
+- [ ] g. `GET /callouts`
+- [ ] h. Voice via LiveKit (+ `/voice/token`, text `/voice`)
+- [ ] i. Adjuster console
+
 Owner: Abhinav. Lane: `agents/`, `evals/`, `contracts/` **except
 `contracts/samples/`**, `docs/STATUS-windows.md`. **Nothing under `Assets/` is
 modified.**
