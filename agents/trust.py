@@ -58,6 +58,22 @@ def strip_invisible(text: str) -> str:
     return "".join(c for c in text if c not in INVISIBLE_CHARS and unicodedata.category(c) != "Cf")
 
 
+# Cyrillic and Greek characters that render identically to Latin ones. NFKC does
+# NOT fold these, so "flооd" with Cyrillic о survives normalisation and defeats a
+# literal match. Held-out attack h24 used exactly this.
+_HOMOGLYPHS = str.maketrans({
+    "а": "a", "б": "b", "в": "b", "е": "e", "ѕ": "s", "і": "i", "ј": "j",
+    "к": "k", "м": "m", "н": "h", "о": "o", "р": "p", "с": "c", "т": "t",
+    "у": "y", "х": "x", "ԁ": "d", "ɡ": "g", "ⅼ": "l", "ο": "o", "α": "a",
+    "ρ": "p", "ε": "e", "ν": "v", "τ": "t", "υ": "u", "ι": "i", "κ": "k",
+    "η": "n", "μ": "m", "χ": "x", "γ": "y", "ѡ": "w", "ƅ": "b", "ʏ": "y",
+})
+
+
+def fold_homoglyphs(text: str) -> str:
+    return text.translate(_HOMOGLYPHS)
+
+
 def normalise(text: str) -> str:
     """Canonical form for rule matching.
 
@@ -66,7 +82,7 @@ def normalise(text: str) -> str:
     is what gets stored in the finding, so highlighting still lines up.
     """
     text = unicodedata.normalize("NFKC", strip_invisible(text))
-    return text.lower()
+    return fold_homoglyphs(text.lower())
 
 
 def spotlight(text: str, mark: str, doc_id: str = "evidence") -> str:

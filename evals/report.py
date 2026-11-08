@@ -45,13 +45,21 @@ def _pct(x: float) -> str:
     return f"{x * 100:.1f}%"
 
 
+SET_LABELS = {
+    "seed": "Seed set (ours)",
+    "heldout": "Held-out #1 (now training)",
+    "heldout2": "Held-out #2 (honest)",
+}
+SET_ORDER = ("seed", "heldout", "heldout2")
+
+
 def _cards(results: dict[str, Any]) -> str:
     out = []
-    for name in ("seed", "heldout"):
+    for name in SET_ORDER:
         s = results["sets"].get(name)
         if not s:
             continue
-        label = "Seed set (ours)" if name == "seed" else "Held-out (Claude)"
+        label = SET_LABELS[name]
         cls = "ok" if s["hijack_rate_guard_on"] <= 0.1 else (
             "warn" if s["hijack_rate_guard_on"] <= 0.4 else "bad")
         out.append(
@@ -86,7 +94,7 @@ def _technique_table(results: dict[str, Any]) -> str:
         techniques |= set(s["by_technique"])
     for tech in sorted(techniques):
         cells = []
-        for name in ("seed", "heldout"):
+        for name in SET_ORDER:
             s = results["sets"].get(name)
             t = (s or {}).get("by_technique", {}).get(tech)
             if not t:
@@ -99,14 +107,14 @@ def _technique_table(results: dict[str, Any]) -> str:
                 )
         rows.append(f"<tr><td><code>{html.escape(tech)}</code></td>{''.join(cells)}</tr>")
     return (
-        "<table><tr><th>Technique</th><th>Seed</th><th>Held-out</th></tr>"
-        + "".join(rows) + "</table>"
+        "<table><tr><th>Technique</th><th>Seed</th><th>Held-out #1</th>"
+        "<th>Held-out #2</th></tr>" + "".join(rows) + "</table>"
     )
 
 
 def _missed_table(results: dict[str, Any]) -> str:
     rows = []
-    for name in ("seed", "heldout"):
+    for name in SET_ORDER:
         s = results["sets"].get(name)
         if not s:
             continue
@@ -126,18 +134,37 @@ def _missed_table(results: dict[str, Any]) -> str:
 
 def write_report(results: dict[str, Any], path: Path | None = None) -> Path:
     path = path or REPORT_PATH
-    heldout = results["sets"].get("heldout")
-    honesty = (
-        "<p>The seed set was written by the same person who wrote the detection "
-        "rules, so its score is optimistic by construction. The held-out set was "
-        "written by Claude and measured before any rule was changed. "
-        + (f"<strong>{_pct(heldout['hijack_rate_guard_on'])} of held-out attacks "
-           f"still get through.</strong> That is the number we show judges."
-           if heldout else
-           "<strong>The held-out set has not been generated yet</strong>, so only "
-           "the optimistic number exists so far.")
-        + "</p>"
-    )
+    h1 = results["sets"].get("heldout")
+    h2 = results["sets"].get("heldout2")
+    parts = [
+        "<p>Three sets, and only one of them is evidence.</p>",
+        "<p><strong>Seed</strong> was written by the same person who wrote the "
+        "rules, so its score is optimistic by construction.</p>",
+    ]
+    if h1:
+        parts.append(
+            "<p><strong>Held-out #1</strong> was written by Claude and first "
+            "measured before any rule changed, at <strong>93.3% hijack</strong>. "
+            "The rules were then rewritten by reading the attacks that defeated "
+            f"them, which brought it to {_pct(h1['hijack_rate_guard_on'])} — but "
+            "that act turned this set into a <em>training</em> set, and its score "
+            "stopped being evidence.</p>"
+        )
+    if h2:
+        parts.append(
+            "<p><strong>Held-out #2</strong> was generated afterwards, against "
+            "rules it had never seen. "
+            f"<strong>{_pct(h2['hijack_rate_guard_on'])} of these still get "
+            "through.</strong> That is the number we show judges. The distance "
+            "between it and held-out #1 is how much of the tuning was real and "
+            "how much was overfitting.</p>"
+        )
+    else:
+        parts.append(
+            "<p><strong>Held-out #2 has not been generated.</strong> Until it "
+            "exists, every attack number here has been fitted to.</p>"
+        )
+    honesty = "".join(parts)
 
     body = f"""<div class="wrap">
 <h1>FloodVR injection-guard evals</h1>

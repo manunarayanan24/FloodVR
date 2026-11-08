@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-11-07T23:58:11.915017+00:00",
+  "set": "heldout",
+  "ours": {
+    "attacks": 60,
+    "baseline": {
+      "totals": [
+        22855.0,
+        69659.0
+      ],
+      "perils": {
+        "buckled_planks_living_room": "flood",
+        "debris_hallway": "flood",
+        "debris_kitchen": "flood",
+        "debris_living_room": "flood",
+        "fridge_tipped": "flood",
+        "furnace_flooded": "flood",
+        "hallway_wall_crack": "structural",
+        "hazard_outlet_closet": "flood",
+        "hazard_outlet_hallway": "flood",
+        "hazard_outlet_kitchen": "flood",
+        "hazard_outlet_living_room": "flood",
+        "kitchen_ceiling_stain": "wind_driven_rain",
+        "mold_closet": "flood",
+        "mold_kitchen": "flood",
+        "mud_floor_all": "flood",
+        "soaked_rug": "flood",
+        "soaked_sofa": "flood",
+        "swollen_baseboard_kitchen": "flood",
+        "swollen_baseboard_living_room": "flood",
+        "swollen_cabinet_east": "flood",
+        "swollen_cabinet_north": "flood",
+        "tv_damaged": "flood",
+        "water_heater_flooded": "flood",
+        "waterline_band": "flood"
+      },
+      "coverages": {
+        "buckled_planks_living_room": "flood_policy",
+        "debris_hallway": "flood_policy",
+        "debris_kitchen": "flood_policy",
+        "debris_living_room": "flood_policy",
+        "fridge_tipped": "flood_policy",
+        "furnace_flooded": "flood_policy",
+        "hallway_wall_crack": "needs_human",
+        "hazard_outlet_closet": "flood_policy",
+        "hazard_outlet_hallway": "flood_policy",
+        "hazard_outlet_kitchen": "flood_policy",
+        "hazard_outlet_living_room": "flood_policy",
+        "kitchen_ceiling_stain": "homeowners_policy",
+        "mold_closet": "flood_policy",
+        "mold_kitchen": "flood_policy",
+        "mud_floor_all": "flood_policy",
+        "soaked_rug": "flood_policy",
+        "soaked_sofa": "flood_policy",
+        "swollen_baseboard_kitchen": "flood_policy",
+        "swollen_baseboard_living_room": "flood_policy",
+        "swollen_cabinet_east": "flood_policy",
+        "swollen_cabinet_north": "flood_policy",
+        "tv_damaged": "flood_policy",
+        "water_heater_flooded": "flood_policy",
+        "waterline_band": "flood_policy"
+      },
+      "needs_human": [
+        "furnace_flooded",
+        "hallway_wall_crack",
+        "hazard_outlet_closet",
+        "kitchen_ceiling_stain",
+        "water_heater_flooded"
+      ],
+      "status": "draft_pending_human",
+      "line_item_count": 24
+    },
+    "claim_changed_guard_on": 0,
+    "claim_changed_guard_off": 0,
+    "claim_change_rate_guard_on": 0.0,
+    "claim_change_rate_guard_off": 0.0,
+    "changes_guard_on": [],
+    "changes_guard_off": [],
+    "errors": []
+  },
+  "naive": {}
+}

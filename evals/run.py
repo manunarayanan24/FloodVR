@@ -39,6 +39,10 @@ SAMPLE_MANIFEST = settings.CONTRACTS_DIR / "samples" / "house_manifest.json"
 SEED_PATH = ATTACKS_DIR / "seed_attacks.json"
 CLEAN_PATH = ATTACKS_DIR / "clean_evidence.json"
 HELDOUT_PATH = ATTACKS_DIR / "generated_heldout.json"
+# Generated AFTER the rules were tuned on `heldout`. This is the only attack
+# number that is still evidence; `heldout` became a training set the moment
+# R16-R27 were written by reading its misses.
+HELDOUT2_PATH = ATTACKS_DIR / "generated_heldout2.json"
 
 
 def _load(path: Path) -> dict[str, Any] | None:
@@ -169,8 +173,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--guard-model", action="store_true",
                     help="also run the NVIDIA guard model layer (needs NVIDIA_API_KEY)")
-    ap.add_argument("--sets", default="seed,heldout",
-                    help="comma-separated: seed,heldout")
+    ap.add_argument("--sets", default="seed,heldout,heldout2",
+                    help="comma-separated: seed,heldout,heldout2")
     args = ap.parse_args()
 
     wanted = {s.strip() for s in args.sets.split(",") if s.strip()}
@@ -189,19 +193,25 @@ def main() -> int:
     print(f"FloodVR red-team evals   layers: rules{' + guard_model' if use_gm else ''}")
     print("=" * 68)
 
-    for name, path in (("seed", SEED_PATH), ("heldout", HELDOUT_PATH)):
+    labels = {
+        "seed": "SEED (we wrote these — optimistic)",
+        "heldout": "HELD-OUT #1 (Claude wrote these; rules were later TUNED on "
+                   "them, so this is now a training score)",
+        "heldout2": "HELD-OUT #2 (Claude wrote these AFTER tuning — the honest number)",
+    }
+    for name, path in (("seed", SEED_PATH), ("heldout", HELDOUT_PATH),
+                       ("heldout2", HELDOUT2_PATH)):
         if name not in wanted:
             continue
         data = _load(path)
         if not data:
-            if name == "heldout":
-                print("\nheld-out set: NOT PRESENT. Run `python -m evals.gen_variants` "
-                      "to have Claude write fresh attacks.")
+            if name.startswith("heldout"):
+                print(f"\n{name}: NOT PRESENT. Run "
+                      f"`python -m evals.gen_variants --tag {name}`.")
             continue
         scored = score_attacks(data["attacks"], use_gm)
         results["sets"][name] = scored
-        label = "SEED (we wrote these — optimistic)" if name == "seed" else \
-                "HELD-OUT (Claude wrote these — honest)"
+        label = labels[name]
         print(f"\n{label}")
         print(f"  attacks              {scored['total']}")
         print(f"  caught               {scored['caught']}")

@@ -20,11 +20,14 @@ import argparse
 import json
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 
 from agents import settings
 from agents.llm import claude_complete
 
-OUT_PATH = settings.EVALS_DIR / "attacks" / "generated_heldout.json"
+def out_path(tag: str) -> Path:
+    name = "generated_heldout.json" if tag == "heldout" else f"generated_{tag}.json"
+    return settings.EVALS_DIR / "attacks" / name
 
 # Claude Opus 5.5: $4 / 1M input, $20 / 1M output.
 _IN_PER_MTOK = 4.00
@@ -93,7 +96,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--count", type=int, default=60)
     ap.add_argument("--yes", action="store_true", help="skip the cost prompt")
+    ap.add_argument("--tag", default="heldout",
+                    help="output set name. Use a NEW tag (e.g. heldout2) after "
+                         "tuning rules on the previous set, or the number is "
+                         "measured on data the rules were fitted to.")
     args = ap.parse_args()
+    target = out_path(args.tag)
 
     if not settings.has_key("anthropic"):
         print("ANTHROPIC_API_KEY is not set in agents/.env — cannot generate.")
@@ -137,17 +145,17 @@ def main() -> int:
         })
 
     payload = {
-        "set": "heldout",
+        "set": args.tag,
         "author": f"Claude ({model_id}) — not written by the rule author",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "note": "HELD OUT. Measure before changing any detection rule. Regenerating "
                 "this file after tuning the rules invalidates the number.",
         "attacks": clean,
     }
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
-    print(f"\nWrote {len(clean)} attacks to {OUT_PATH.relative_to(settings.REPO_ROOT)}")
+    print(f"\nWrote {len(clean)} attacks to {target.relative_to(settings.REPO_ROOT)}")
     print(f"Took {comp.ms / 1000:.1f}s")
     print("\nNow run, WITHOUT touching agents/guard.py first:")
     print("    python -m evals.run")
