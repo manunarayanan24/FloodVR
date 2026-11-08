@@ -1,16 +1,18 @@
 # Machine 3 (Windows) — AI + security status
 
+**Tunnel (live): https://starter-king-jackson-avon.trycloudflare.com** — `/health` ok, live NVIDIA, audit chain intact.
+
 Owner: Abhinav. Lane: `agents/`, `evals/`, `contracts/` **except
 `contracts/samples/`**, `docs/STATUS-windows.md`. **Nothing under `Assets/` is
 modified.**
 
-Last updated: 2026-11-07
+Last updated: 2026-11-07 (new account session; tunnel restarted)
 
 ---
 
 ## Live API (current)
 
-**Base URL:** `https://operates-voters-officials-lenses.trycloudflare.com`
+**Base URL:** `https://starter-king-jackson-avon.trycloudflare.com`
 
 > Quick tunnels die when `cloudflared` stops. This URL is valid only while the
 > Windows box is up — check here after any restart. Read it at runtime (`?api=`),
@@ -30,7 +32,7 @@ CORS allows `https://*.vercel.app` and `http://localhost:<port>`.
 
 Quick check from any machine:
 ```bash
-curl https://operates-voters-officials-lenses.trycloudflare.com/health
+curl https://starter-king-jackson-avon.trycloudflare.com/health
 ```
 
 ---
