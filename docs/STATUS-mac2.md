@@ -16,6 +16,12 @@
 
 **Next:** Rebuild + redeploy (`bash ~/ship.sh`) then re-test on the iPhone. Also: after Mac 1's visual pass lands, rebuild + redeploy again + re-test.
 
+**Done (2026-11-08, visual pass round):** Picked up Mac 1's visual polish (Poly Haven textures + CC0 furniture, warmer lighting, fridge note close-up, House.unity regenerated) — no code change needed, just rebuild + redeploy.
+
+**Done (2026-11-08, open-mic voice):** Per Windows' request in `contracts/voice_unity/README.md`, VoiceClient.Start() now also calls `_lk.Connect()` via ApiConfig.WhenReady (OnEnteredVR retries from the Enter VR gesture). Ready text is "Voice ready - just talk"; mic-blocked errors show "Microphone blocked - allow the mic and reload". setMic() is a server-side no-op now so the existing tap-toggle in `DeviceOrientation.jslib` is harmless.
+
+**Next:** Rebuild + redeploy (`bash ~/ship.sh`), then iPhone-test: enter VR, allow mic, say "How high did the water get?", wait; captions + spoken answer should appear with no tap.
+
 **Blocked:** Nothing. All of Mac 2's lane is done.
 
 **Waiting on others:**
