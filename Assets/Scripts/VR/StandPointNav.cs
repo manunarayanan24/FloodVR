@@ -29,8 +29,8 @@ namespace FloodVR
             _head = look != null ? look.transform : transform;
 
             _holder = new GameObject("StandMarkers").transform;
-            _discMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.85f));
-            _beaconMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.35f));
+            _discMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.55f));
+            _beaconMat = MakeMat(new Color(0.25f, 0.75f, 1f, 0.28f));
 
             foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
@@ -152,7 +152,9 @@ namespace FloodVR
 
         static Material MakeMat(Color c)
         {
-            Shader s = Shader.Find("Sprites/Default");
+            // Overlay shader (Resources/FloodVROverlay) draws through walls so you can see where to go.
+            Shader s = Resources.Load<Shader>("FloodVROverlay");
+            if (s == null) s = Shader.Find("Sprites/Default");
             if (s == null) s = Shader.Find("UI/Default");
             if (s == null) s = Shader.Find("Standard");
             var m = new Material(s);

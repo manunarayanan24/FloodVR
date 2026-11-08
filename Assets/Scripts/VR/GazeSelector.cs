@@ -38,8 +38,8 @@ namespace FloodVR
         const float LabelPad = 0.04f;
         const float TitleH = 0.09f;
         const float BodyGap = 0.02f;
-        const float BodySize = 3.2f;     // body font size (world-space TMP units)
-        const float BodyMaxH = 0.75f;    // body text taller than this is shrunk to fit
+        const float BodySize = 1.5f;     // body font size (world-space TMP units; ~0.031 m per unit of line height)
+        const float BodyMaxH = 0.6f;     // body text taller than this is shrunk to fit
         const float LabelDistance = 0.8f; // label floats this far from the eyes (in front of nearly all geometry)
         Transform _bgT, _barT;
 
@@ -260,10 +260,10 @@ namespace FloodVR
             {
                 _body.fontSize = size;
                 bodyH = _body.GetPreferredValues(_body.text, tw, 0f).y;
-                if (bodyH <= BodyMaxH || size <= 1.4f) break;
-                size -= 0.2f;
+                if (bodyH <= BodyMaxH || size <= 0.9f) break;
+                size -= 0.1f;
             }
-            bodyH = Mathf.Clamp(bodyH, 0.06f, BodyMaxH + 0.05f);
+            bodyH = Mathf.Clamp(bodyH, 0.06f, BodyMaxH + 0.1f);
 
             float h = LabelPad + TitleH + BodyGap + bodyH + LabelPad;
             float top = h * 0.5f;

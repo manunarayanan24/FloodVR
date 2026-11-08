@@ -163,7 +163,7 @@ namespace FloodVR
             if (font != null) _text.font = font;
             _text.richText = false; // transcript + reply are untrusted
             _text.enableAutoSizing = false;
-            _text.fontSize = 3.2f;
+            _text.fontSize = 1.6f; // ~0.05 m lines at 0.9 m
             _text.color = Color.white;
             _text.alignment = TextAlignmentOptions.Center;
             _text.textWrappingMode = TextWrappingModes.Normal;
