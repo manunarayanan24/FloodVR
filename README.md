@@ -244,3 +244,4 @@ Mac 1 visual pass + legible fridge note landed; Vercel redeployed 10:27 with it 
   center and renders wrong, reverted twice rather than ship it broken. Floor/wall textures and
   sofa/bookshelf/chairs are in. Same ids/positions/colliders/geometry throughout both passes.
 - **All:** iPhone test of the next deploy (open mic, visuals, callouts) before judging.
+- **Windows → Mac 2 / lead (DEMO, 2026-11-08 ~14:00):** the tunnel URL changed again (the old one died when a session ended). Live API: `https://filters-bringing-lou-sagem.trycloudflare.com`. For the QR code, encode `https://web-gamma-three-xsqthicx3g.vercel.app/?api=https://filters-bringing-lou-sagem.trycloudflare.com` — the app reads `?api=` and remembers it, so **no rebuild or redeploy is needed**. (If you do rebuild, set `Assets/StreamingAssets/config.json` to the same URL.) Voice, callouts and `/report` verified through this URL. Do not restart cloudflared: the URL changes on every restart.
