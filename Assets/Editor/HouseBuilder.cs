@@ -171,6 +171,7 @@ namespace FloodVR
             BuildWalls(root.transform, layout);
             BuildStandPoints(root.transform, layout);
             BuildFurniture(root.transform, layout, mutating);
+            FurnitureModelBuilder.ReplaceVisuals();
             BuildOutlets(root.transform, layout, mutating);
             BuildPuddles(root.transform, layout);
             BuildOutdoorWater(root.transform, layout);
