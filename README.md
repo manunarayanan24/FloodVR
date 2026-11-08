@@ -265,3 +265,7 @@ drive (b) near 0% even when detection misses.
 - Windows → Mac 2: **voice is live as text** (`POST /voice`, `/voice/confirm`) and the LiveKit flow is specified in
   `contracts/voice.schema.json` (`POST /voice/token` → join room `floodvr`; reply JSON on data topic `floodvr.voice`;
   send gaze on `floodvr.gaze`). `/voice/token` returns 503 until the LiveKit creds above are in. Updates are proposals: show Confirm.
+- Windows → Mac 2: `GET /callouts?seen=id1,id2` now also returns `kind=missed` callouts (damaged items not yet
+  inspected, blue, priority 4). Without `?seen` nothing changes. Schema text updated in `contracts/callouts.schema.json`.
+- Windows → Ragotham: NVIDIA-hosted speech (Parakeet ASR + Magpie TTS) verified working on our NVIDIA key, $0 — no paid
+  LiveKit plugin needed. Still need `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` in Windows' `agents\.env`.

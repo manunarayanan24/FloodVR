@@ -258,3 +258,6 @@ never pushed it. Corrections and additions that supersede anything above:
    spend over $1. Generated attack sets cost ~11 cents each.
 5. Whenever you restart cloudflared, put the new URL at the top of docs/STATUS-windows.md.
 6. Update README section 8 (your status line only) and section 9 as you finish steps.
+
+---
+CURRENT PLAN (2026-11-07 evening): the user's "Build plan v2" (8 steps) REPLACES both the "Next steps, in order" list above and the Lead addendum build order. All 8 steps are implemented; progress, gate numbers and the one blocker (LiveKit credentials) are in docs/STATUS-windows.md under "Build plan v2". Gate before every push: agents.tools.smoke, agents.tools.test_output_guard (7/7), evals.endtoend --set heldout2 (targeted ASR 0%, utility under attack 100%, 0 flow violations), evals.run (0/46 false positives). Do not modify output_guard.py, taint.py, guard rules or eval sets.
