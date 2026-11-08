@@ -67,6 +67,17 @@ namespace FloodVR
         public SceneTextEntry[] scene_text;
     }
 
+    // Furniture/outlet ids that get independently mutated at runtime by
+    // FloodState -- transform = position/rotation/scale changes (unsafe for
+    // static batching, since static meshes bake world-space once); color =
+    // color-only changes (static-batching-safe, but needs a dedicated
+    // material so the mutation doesn't bleed into other objects sharing it).
+    public class MutatingTargets
+    {
+        public HashSet<string> transform = new();
+        public HashSet<string> color = new();
+    }
+
     public static class DamageBuilder
     {
         public const string DamageJsonPath = "Assets/Data/damage.json";
@@ -81,6 +92,33 @@ namespace FloodVR
                 return null;
             }
             return JsonUtility.FromJson<DamageManifestInput>(File.ReadAllText(path));
+        }
+
+        public static MutatingTargets GetMutatingTargetIds()
+        {
+            MutatingTargets result = new MutatingTargets();
+            DamageManifestInput damage = LoadDamage();
+            if (damage?.items == null) return result;
+
+            foreach (DamageItemData item in damage.items)
+            {
+                if (item.effect == null || string.IsNullOrEmpty(item.effect.targetId)) continue;
+                switch (item.effect.type)
+                {
+                    case "tipFurniture":
+                        result.transform.Add(item.effect.targetId);
+                        break;
+                    case "scaleFurniture":
+                        result.transform.Add(item.effect.targetId);
+                        result.color.Add(item.effect.targetId);
+                        break;
+                    case "darkenFurniture":
+                    case "flagExisting":
+                        result.color.Add(item.effect.targetId);
+                        break;
+                }
+            }
+            return result;
         }
 
         public static void ApplyDamage(Transform houseRoot, HouseLayout layout)
@@ -231,6 +269,7 @@ namespace FloodVR
             seg.transform.rotation = Quaternion.Euler(0f, angle, 0f);
             seg.transform.localScale = new Vector3(thickness, top - bottom, length);
             seg.GetComponent<Renderer>().sharedMaterial = mat;
+            HouseBuilder.MarkBatchingStatic(seg);
         }
 
         private static GameObject BuildFloorMud(Transform damageRoot, HouseLayout layout, DamageItemData item, DamageEffect fx)
@@ -240,7 +279,8 @@ namespace FloodVR
             GameObject mud = HouseBuilder.CreatePrimitiveChild(PrimitiveType.Cube, $"Damage_{item.id}", damageRoot);
             mud.transform.position = new Vector3(layout.house.width / 2f, thicknessM / 2f + 0.002f, layout.house.depth / 2f);
             mud.transform.localScale = new Vector3(layout.house.width - wt * 2f, thicknessM, layout.house.depth - wt * 2f);
-            mud.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor(), item.id);
+            mud.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor());
+            HouseBuilder.MarkBatchingStatic(mud);
             return mud;
         }
 
@@ -252,7 +292,7 @@ namespace FloodVR
             GameObject group = new GameObject($"Damage_{item.id}");
             group.transform.SetParent(damageRoot, false);
 
-            Material mat = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor(), item.id);
+            Material mat = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor());
             float cx = (room.minX + room.maxX) / 2f;
             float cz = (room.minZ + room.maxZ) / 2f;
             group.transform.position = new Vector3(cx, 0.03f, cz);
@@ -266,6 +306,7 @@ namespace FloodVR
                 plank.transform.rotation = Quaternion.Euler(0f, (i % 2 == 0) ? 3f : -4f, 0f);
                 plank.transform.localScale = new Vector3(1.2f, 0.04f, 0.25f);
                 plank.GetComponent<Renderer>().sharedMaterial = mat;
+                HouseBuilder.MarkBatchingStatic(plank);
             }
 
             return group;
@@ -278,7 +319,7 @@ namespace FloodVR
 
             GameObject group = new GameObject($"Damage_{item.id}");
             group.transform.SetParent(damageRoot, false);
-            Material mat = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor(), item.id);
+            Material mat = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor());
 
             float width = room.maxX - room.minX;
             float depth = room.maxZ - room.minZ;
@@ -300,6 +341,7 @@ namespace FloodVR
             strip.transform.position = pos;
             strip.transform.localScale = scale;
             strip.GetComponent<Renderer>().sharedMaterial = mat;
+            HouseBuilder.MarkBatchingStatic(strip);
         }
 
         private static GameObject ApplyScaleFurniture(DamageItemData item, DamageEffect fx)
@@ -466,7 +508,8 @@ namespace FloodVR
             GameObject stain = HouseBuilder.CreatePrimitiveChild(PrimitiveType.Cube, $"Damage_{item.id}", damageRoot);
             stain.transform.position = new Vector3(cx, layout.house.wallHeight - 0.12f, cz);
             stain.transform.localScale = new Vector3(width * 0.5f, 0.05f, depth * 0.4f);
-            stain.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor(), item.id);
+            stain.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor());
+            HouseBuilder.MarkBatchingStatic(stain);
             return stain;
         }
 
@@ -476,7 +519,8 @@ namespace FloodVR
             decal.transform.position = fx.pos.ToVector3();
             decal.transform.rotation = Quaternion.Euler(0f, fx.rotationY, 0f);
             decal.transform.localScale = fx.size.ToVector3();
-            decal.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor(), item.id);
+            decal.GetComponent<Renderer>().sharedMaterial = HouseBuilder.GetOrCreateMaterial(fx.color.ToColor());
+            HouseBuilder.MarkBatchingStatic(decal);
             return decal;
         }
 

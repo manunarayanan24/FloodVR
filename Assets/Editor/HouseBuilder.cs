@@ -156,14 +156,22 @@ namespace FloodVR
 
             GameObject root = new GameObject(HouseRootName);
 
+            // Wipe and regenerate materials every build -- otherwise renaming
+            // or re-keying a material (e.g. switching an object from a
+            // per-id to a shared-by-color material) leaves the old file
+            // behind as an orphaned, unreferenced asset forever.
+            if (AssetDatabase.IsValidFolder(MaterialsFolder)) AssetDatabase.DeleteAsset(MaterialsFolder);
             EnsureFolder(MaterialsFolder);
+            materialCache.Clear();
+
+            MutatingTargets mutating = DamageBuilder.GetMutatingTargetIds();
 
             BuildFloor(root.transform, layout.house);
             BuildCeiling(root.transform, layout.house);
             BuildWalls(root.transform, layout);
             BuildStandPoints(root.transform, layout);
-            BuildFurniture(root.transform, layout);
-            BuildOutlets(root.transform, layout);
+            BuildFurniture(root.transform, layout, mutating);
+            BuildOutlets(root.transform, layout, mutating);
             BuildPuddles(root.transform, layout);
             BuildOutdoorWater(root.transform, layout);
             SceneTextBuilder.BuildSceneTexts(layout);
@@ -198,6 +206,17 @@ namespace FloodVR
             string leaf = Path.GetFileName(assetFolderPath);
             if (!AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
             AssetDatabase.CreateFolder(parent, leaf);
+        }
+
+        // Color-sharing variant: objects that are never independently
+        // color-mutated at runtime can safely share one material per distinct
+        // color, cutting down material/batch count. Objects that DO get
+        // mutated independently (see DamageBuilder.GetMutatingTargetIds) must
+        // keep calling the per-name overload below instead.
+        internal static Material GetOrCreateMaterial(Color color)
+        {
+            string key = $"Shared_{Mathf.RoundToInt(color.r * 255)}_{Mathf.RoundToInt(color.g * 255)}_{Mathf.RoundToInt(color.b * 255)}_{Mathf.RoundToInt(color.a * 255)}";
+            return GetOrCreateMaterial(color, key);
         }
 
         internal static Material GetOrCreateMaterial(Color color, string name)
@@ -236,6 +255,15 @@ namespace FloodVR
             return go;
         }
 
+        // Only safe for geometry whose transform never changes after build time
+        // -- anything FloodState moves/rotates/scales (see
+        // DamageBuilder.GetMutatingTargetIds().transformMutating) must be
+        // excluded, since static-batched meshes are baked in world space once.
+        internal static void MarkBatchingStatic(GameObject go)
+        {
+            GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
+        }
+
         private static void BuildFloor(Transform root, HouseData house)
         {
             const float thickness = 0.1f;
@@ -243,6 +271,7 @@ namespace FloodVR
             floor.transform.position = new Vector3(house.width / 2f, -thickness / 2f, house.depth / 2f);
             floor.transform.localScale = new Vector3(house.width, thickness, house.depth);
             floor.GetComponent<Renderer>().sharedMaterial = GetOrCreateMaterial(house.floorColor.ToColor(), "Floor");
+            MarkBatchingStatic(floor);
         }
 
         private static void BuildCeiling(Transform root, HouseData house)
@@ -252,6 +281,7 @@ namespace FloodVR
             ceiling.transform.position = new Vector3(house.width / 2f, house.wallHeight + thickness / 2f, house.depth / 2f);
             ceiling.transform.localScale = new Vector3(house.width, thickness, house.depth);
             ceiling.GetComponent<Renderer>().sharedMaterial = GetOrCreateMaterial(house.ceilingColor.ToColor(), "Ceiling");
+            MarkBatchingStatic(ceiling);
         }
 
         private static void BuildWalls(Transform root, HouseLayout layout)
@@ -326,6 +356,7 @@ namespace FloodVR
             seg.transform.rotation = Quaternion.Euler(0f, angle, 0f);
             seg.transform.localScale = new Vector3(thickness, top - bottom, length);
             seg.GetComponent<Renderer>().sharedMaterial = mat;
+            MarkBatchingStatic(seg);
         }
 
         private static void BuildStandPoints(Transform root, HouseLayout layout)
@@ -343,7 +374,7 @@ namespace FloodVR
             }
         }
 
-        private static void BuildFurniture(Transform root, HouseLayout layout)
+        private static void BuildFurniture(Transform root, HouseLayout layout, MutatingTargets mutating)
         {
             if (layout.furniture == null) return;
             GameObject furnitureRoot = new GameObject("Furniture");
@@ -361,16 +392,24 @@ namespace FloodVR
                     ? new Vector3(size.x, size.y / 2f, size.z)
                     : size;
 
-                go.GetComponent<Renderer>().sharedMaterial = GetOrCreateMaterial(item.color.ToColor(), item.id);
+                // Independently color-mutated items need a dedicated material
+                // (else mutating one bleeds into every object sharing it);
+                // everything else shares one material per distinct color.
+                Material mat = mutating.color.Contains(item.id)
+                    ? GetOrCreateMaterial(item.color.ToColor(), item.id)
+                    : GetOrCreateMaterial(item.color.ToColor());
+                go.GetComponent<Renderer>().sharedMaterial = mat;
+
+                if (!mutating.transform.Contains(item.id)) MarkBatchingStatic(go);
             }
         }
 
-        private static void BuildOutlets(Transform root, HouseLayout layout)
+        private static void BuildOutlets(Transform root, HouseLayout layout, MutatingTargets mutating)
         {
             if (layout.outlets == null) return;
             GameObject outletsRoot = new GameObject("Outlets");
             outletsRoot.transform.SetParent(root, false);
-            Material outletMat = GetOrCreateMaterial(new Color(0.95f, 0.95f, 0.92f), "Outlet");
+            Color baseColor = new Color(0.95f, 0.95f, 0.92f);
 
             foreach (OutletData outlet in layout.outlets)
             {
@@ -378,7 +417,13 @@ namespace FloodVR
                 go.transform.position = outlet.pos.ToVector3();
                 go.transform.rotation = Quaternion.Euler(0f, outlet.rotationY, 0f);
                 go.transform.localScale = new Vector3(0.02f, 0.11f, 0.07f);
-                go.GetComponent<Renderer>().sharedMaterial = outletMat;
+
+                Material mat = mutating.color.Contains(outlet.id)
+                    ? GetOrCreateMaterial(baseColor, outlet.id)
+                    : GetOrCreateMaterial(baseColor);
+                go.GetComponent<Renderer>().sharedMaterial = mat;
+
+                if (!mutating.transform.Contains(outlet.id)) MarkBatchingStatic(go);
             }
         }
 
@@ -393,9 +438,10 @@ namespace FloodVR
                 GameObject go = CreatePrimitiveChild(PrimitiveType.Cube, p.id, puddlesRoot.transform);
                 go.transform.position = p.pos.ToVector3();
                 go.transform.localScale = new Vector3(p.size.x, 0.005f, p.size.z);
-                Material mat = GetOrCreateMaterial(p.color.ToColor(), p.id);
+                Material mat = GetOrCreateMaterial(p.color.ToColor());
                 mat.SetFloat("_Glossiness", 0.6f); // cheap stand-in for reflective standing water
                 go.GetComponent<Renderer>().sharedMaterial = mat;
+                MarkBatchingStatic(go);
             }
         }
 
@@ -430,6 +476,7 @@ namespace FloodVR
             slab.transform.position = new Vector3((x1 + x2) / 2f, y, (z1 + z2) / 2f);
             slab.transform.localScale = new Vector3(x2 - x1, thickness, z2 - z1);
             slab.GetComponent<Renderer>().sharedMaterial = mat;
+            MarkBatchingStatic(slab);
         }
 
         private static void ConfigureCameraAndLight(SceneData sceneData)
