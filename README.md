@@ -209,9 +209,13 @@ the two together: detection is the weak layer, the architecture is the strong on
 
 - **Mac 1:** house + 26 damage items, stand points, pre/post-flood toggle, fridge injection
   note (`scene_text`), 9 screenshots + `screens.json` answer key, geometry export, contents
-  fraud-checker items, iPhone perf pass — pushed. **Lead:** verified every lane on GitHub and
-  live Sun 8:55 am; open items in section 9. **Next on Mac 1:** fridge-note legibility + visual
-  pass (CC0 textures and furniture on the same layout, same ids and positions).
+  fraud-checker items, iPhone perf pass — pushed. Visual polish pass (90-min time box, done):
+  fridge note legibility fixed (was overflowing the card) + a close-up capture; CC0 PBR
+  textures (wood/tile floor, plaster walls, waterline band kept); CC0 models for sofa/
+  bookshelf/kitchen chairs (coffee table reverted — see CREDITS.md); warmer light. Same ids,
+  positions, colliders, room/wall dimensions throughout — `house_geometry.json` byte-identical,
+  26 DamageItems unchanged. Stats: 45,547 tris / 40 batches, Build Web 11.5 MB. House.unity
+  still rig-free.
 - **Mac 2:** Done. Phone-VR app shipped and iPhone-tested end to end: stereo rig + head
   tracking, gaze labels, gaze-to-glide walking between StandPoints with a comfort fade,
   16 server-rendered callouts (with an offline-sample fallback for venue wifi), and
@@ -236,9 +240,6 @@ fraud all flagged, callouts react (16 → 18) and reset, voice token + refusals 
   summary), gazed-item answers are thin, furnace action → "this claim is a draft", power safety,
   "trick the AI", summary, greeting, "which room is worst" → generic fallback. 27/27 on
   `evals/voice_questions.json` is a training score; keep a separate held-out phrasing set.
-- **Windows → Mac 1:** fridge-note text overflows its yellow backing, so the VLM reads fragments
-  (blocked in 1/3 kitchen shots). Make it fit + add a close-up screenshot and its `screens.json`
-  entry. Part of the Mac 1 visual pass (not started yet).
 - **Mac 1 → Windows (after Mac 1 re-exports):** re-run the Vision Inspector cache
   (`evals/vision.json`) and update the vision numbers.
 - **Mac 1 → Mac 2 (after the visual pass):** rebuild, redeploy, re-test on the iPhone.

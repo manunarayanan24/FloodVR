@@ -103,10 +103,10 @@
     "cameraPos": { "x": 5.0, "y": 1.6, "z": 1.0 },
     "cameraLookAt": { "x": 3.5, "y": 1.6, "z": 6.0 },
     "lightRotationEuler": { "x": 50, "y": -30, "z": 0 },
-    "lightColor": { "r": 1.0, "g": 0.95, "b": 0.9 },
-    "lightIntensity": 0.8,
+    "lightColor": { "r": 1.0, "g": 0.89, "b": 0.74 },
+    "lightIntensity": 1.05,
     "skyColor": { "r": 0.58, "g": 0.6, "b": 0.62 },
-    "ambientColor": { "r": 0.42, "g": 0.43, "b": 0.45 },
+    "ambientColor": { "r": 0.5, "g": 0.46, "b": 0.4 },
     "fogStart": 4.0,
     "fogEnd": 32.0
   },
