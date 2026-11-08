@@ -8,6 +8,6 @@
 
 **Done:** ...plus smoke-tested Tools > FloodVR > Build Web (Mac 2's commits, not edited): clean batchmode build, 9.4 MB, House.unity confirmed still rig-free afterward (BuildWeb uses a throwaway scene copy). Served Builds/web locally and confirmed the CardboardVR template + loader/data/framework/wasm all serve correctly (desktop sanity check only, not deployed -- that's Mac 2's). Committed the ProjectSettings changes the build correctly applied (runInBackground, webGLTemplate, decompression fallback).
 
-**Doing:** Idle, all 4 tasks from this round complete.
+**Doing:** Idle, waiting on requests.
 
 **Blocked:** Nothing.
