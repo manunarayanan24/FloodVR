@@ -236,6 +236,16 @@ def voice_token() -> dict:
     return out
 
 
+@app.post("/voice/agent")
+def voice_agent() -> dict:
+    """Ask for the voice agent again if it has not joined (the client calls this
+    when it waits too long, e.g. right after the worker restarted)."""
+    from agents.voice import token
+    if not token.configured():
+        raise HTTPException(503, "LiveKit not configured on the server")
+    return {"agent": token.ensure_agent(token.ROOM)}
+
+
 @app.get("/measurements")
 def measurements() -> dict:
     """Room quantities recomputed from house_geometry.json + cross-check vs Mac 1's export."""

@@ -81,10 +81,13 @@ def ensure_agent(room: str = ROOM) -> str:
             return "room will be created on join (agent via roomConfig)"
         # Check who is actually in the room, not dispatch records (a finished
         # job can leave a stale record behind).
-        parts = _twirp("RoomService", "ListParticipants", {"room": room}, admin)
-        if any(str(p.get("kind", "")).upper() in ("AGENT", "4")
-               for p in parts.get("participants", [])):
-            return "agent already in room"
+        try:
+            parts = _twirp("RoomService", "ListParticipants", {"room": room}, admin)
+            if any(str(p.get("kind", "")).upper() in ("AGENT", "4")
+                   for p in parts.get("participants", [])):
+                return "agent already in room"
+        except Exception:  # noqa: BLE001 - room may be mid-teardown; dispatch anyway
+            pass
         _twirp("AgentDispatchService", "CreateDispatch",
                {"room": room, "agent_name": AGENT_NAME}, admin)
         return "agent dispatched to existing room"

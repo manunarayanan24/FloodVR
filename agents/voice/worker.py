@@ -70,6 +70,44 @@ async def entrypoint(ctx) -> None:
         except (ValueError, AttributeError):
             pass
 
+    # Listen to whoever is talking. By default RoomIO links to the FIRST
+    # participant forever, so a phone joining after a test client (or after a
+    # reconnect under a new identity) was silently ignored.
+    def _is_person(p) -> bool:
+        return p is not None and p.kind != rtc.ParticipantKind.PARTICIPANT_KIND_AGENT
+
+    def _link(p, why: str) -> None:
+        rio = session.room_io
+        if rio is None or not _is_person(p):
+            return
+        current = rio.linked_participant
+        if current is None or current.identity != p.identity:
+            log.info("voice: listening to %s (%s)", p.identity, why)
+            rio.set_participant(p.identity)
+
+    @ctx.room.on("track_subscribed")
+    def _on_track(track, pub, participant) -> None:
+        if track.kind == rtc.TrackKind.KIND_AUDIO:
+            _link(participant, "published mic")
+
+    @ctx.room.on("track_unmuted")
+    def _on_unmute(participant, pub) -> None:
+        if pub.kind == rtc.TrackKind.KIND_AUDIO:
+            _link(participant, "unmuted mic")
+
+    @ctx.room.on("participant_disconnected")
+    def _on_left(participant) -> None:
+        rio = session.room_io
+        if rio is None or rio.linked_participant is None:
+            return
+        if rio.linked_participant.identity == participant.identity:
+            others = [p for p in ctx.room.remote_participants.values()
+                      if _is_person(p) and p.identity != participant.identity]
+            if others:
+                _link(others[-1], "previous speaker left")
+            else:
+                rio.unset_participant()  # re-links to the next person who joins
+
     @session.on("user_input_transcribed")
     def _on_transcript(ev) -> None:
         if not getattr(ev, "is_final", False) or not ev.transcript.strip():

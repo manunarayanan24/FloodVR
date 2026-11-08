@@ -14,6 +14,9 @@
            width:100%; padding:22px; touch-action:none; user-select:none; -webkit-user-select:none; }
   button:disabled { opacity:.45; }
   #talk.on { background:var(--hot); }
+  #captions { margin-top:18px; display:grid; gap:10px; }
+  .cap { background:var(--panel); border-radius:12px; padding:12px 14px; font-size:20px; line-height:1.35; }
+  .cap small { display:block; color:var(--muted); font:12px ui-monospace, monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
   #log { margin-top:18px; display:grid; gap:10px; }
   .msg { background:var(--panel); border-radius:10px; padding:10px 12px; }
   .msg small { display:block; color:var(--muted); font:12px ui-monospace, monospace; margin-bottom:2px; }
@@ -25,6 +28,10 @@
 <button id="connect">Connect</button>
 <div style="height:12px"></div>
 <button id="talk" disabled>Hold to talk</button>
+<div id="captions" aria-live="polite">
+  <div class="cap"><small>You said</small><span id="capYou">-</span></div>
+  <div class="cap"><small>Agent</small><span id="capAgent">-</span></div>
+</div>
 <div id="log"></div>
 <script src="/voice/client.js"></script>
 <script>
@@ -40,8 +47,14 @@
     $("status").textContent = s;
     $("talk").disabled = !(s === "ready" || s === "listening");
   });
-  FloodVRVoice.onHeard(function (t) { add("heard", t); });
+  var waitTimer = null;
+  FloodVRVoice.onHeard(function (t) {
+    $("capYou").textContent = t; $("capAgent").textContent = "thinking...";
+    add("heard", t);
+  });
   FloodVRVoice.onReply(function (r) {
+    clearTimeout(waitTimer);
+    $("capAgent").textContent = r.spoken_reply || "";
     add("agent (" + r.kind + ")", r.spoken_reply || "");
     (r.updates || []).forEach(function (u) { add("proposal", u.field + " on " + u.item_id + ": " + u.value); });
   });
@@ -52,7 +65,15 @@
   });
   var talk = $("talk");
   function down(e) { e.preventDefault(); talk.classList.add("on"); FloodVRVoice.setMic(true); }
-  function up(e) { e.preventDefault(); talk.classList.remove("on"); FloodVRVoice.setMic(false); }
+  function up(e) {
+    e.preventDefault(); talk.classList.remove("on"); FloodVRVoice.setMic(false);
+    $("capYou").textContent = "(transcribing...)";
+    clearTimeout(waitTimer);
+    waitTimer = setTimeout(function () {
+      if ($("capYou").textContent === "(transcribing...)")
+        $("capYou").textContent = "(nothing heard - hold the button while you speak, then release)";
+    }, 8000);
+  }
   talk.addEventListener("pointerdown", down);
   talk.addEventListener("pointerup", up);
   talk.addEventListener("pointercancel", up);

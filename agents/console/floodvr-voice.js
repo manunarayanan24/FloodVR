@@ -71,6 +71,17 @@
     await room.connect(tok.url, tok.token);
     await room.startAudio(); // unlocks playback; call connect() from a tap
     status(agentPresent() ? "ready" : "waiting for agent");
+    if (!agentPresent()) nudgeAgent(String(apiBase).replace(/\/$/, ""), 0);
+  }
+
+  // If the agent has not joined after ~10 s, ask the server to dispatch it again.
+  function nudgeAgent(base, tries) {
+    setTimeout(function () {
+      if (!room || agentPresent() || tries >= 6) return;
+      status("waiting for agent (retry " + (tries + 1) + ")");
+      fetch(base + "/voice/agent", { method: "POST" }).catch(function () {});
+      nudgeAgent(base, tries + 1);
+    }, 10000);
   }
 
   async function setMic(on) {
