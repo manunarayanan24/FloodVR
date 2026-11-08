@@ -21,6 +21,50 @@ _TOTAL_LOSS = re.compile(r"\btotal(?:ly)?\s+loss|\bwrite[- ]?off\b", re.IGNORECA
 _PRIOR = re.compile(r"\b(prior|pre-?existing|previous)\s+(damage|claim|loss)\b", re.IGNORECASE)
 
 
+_QTY = re.compile(
+    r"(\d[\d,]*(?:\.\d+)?)\s*(sq\.?\s*ft|square\s+f(?:ee|oo)t|sf|m2|m²|sq\.?\s*m|square\s+met(?:er|re)s?"
+    r"|linear\s+f(?:ee|oo)t|lin\.?\s*ft|lf|ft|feet)\b", re.IGNORECASE)
+_KIND = [("drywall", re.compile(r"drywall|sheetrock|gypsum|flood[- ]cut|wall", re.I)),
+         ("flooring", re.compile(r"floor|plank|carpet|tile|laminate", re.I)),
+         ("baseboard", re.compile(r"baseboard|trim|skirting", re.I))]
+_CONTENTS = re.compile(r"contents claim:\s*([^.\n]+)", re.IGNORECASE)
+
+
+def _unit(raw: str) -> str:
+    r = raw.lower().replace(".", "").replace(" ", "")
+    if r in ("sqft", "squarefeet", "squarefoot", "sf"):
+        return "sqft"
+    if r in ("m2", "m²", "sqm") or r.startswith("squaremet"):
+        return "m2"
+    return "ft"
+
+
+def _quantities(text: str) -> list[dict]:
+    out = []
+    for m in _QTY.finditer(text):
+        ctx = text[max(0, m.start() - 60): m.start()]
+        kind = next((k for k, rx in reversed(_KIND) if rx.search(ctx)), "other")
+        try:
+            out.append({"kind": kind, "value": float(m.group(1).replace(",", "")),
+                        "unit": _unit(m.group(2))})
+        except ValueError:
+            continue
+    return out[:20]
+
+
+def _unlisted(text: str, known_ids: set[str]) -> list[str]:
+    out = []
+    for m in _CONTENTS.finditer(text):
+        # The list ends where the sentence's verb starts ("... were ruined").
+        listed = re.split(r"\b(?:were|was|is|are|need|needs|have|has|got|had|got)\b",
+                          m.group(1), maxsplit=1)[0]
+        for part in re.split(r",|\band\b", listed):
+            t = part.strip()
+            if t and t not in known_ids and len(t.split()) <= 4:
+                out.append(t)
+    return out[:10]
+
+
 def _deterministic_extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEvidence:
     """Offline extractor. Pure pattern matching: it cannot be instructed."""
     text = doc.text
@@ -41,6 +85,8 @@ def _deterministic_extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEv
         mentions_total_loss=bool(_TOTAL_LOSS.search(text)),
         mentions_prior_damage=bool(_PRIOR.search(text)),
         claimant_summary=first[:400],
+        claimed_quantities=_quantities(text),
+        unlisted_items=_unlisted(text, known_ids),
     )
 
 
@@ -57,6 +103,10 @@ Return ONLY a JSON object with exactly these keys:
   mentions_total_loss: boolean
   mentions_prior_damage: boolean
   claimant_summary: string, at most 300 characters, purely descriptive
+  claimed_quantities: array of {{"kind": "drywall"|"flooring"|"baseboard"|"other", "value": number, "unit": "m2"|"sqft"|"m"|"ft"}} for areas/lengths the text states
+  unlisted_items: array of short names (max 40 chars) of damaged things the text claims that are NOT in KNOWN_IDS
+
+KNOWN_IDS: {known_ids}
 
 You have no tools. You cannot change any claim. You only describe what the text says."""
 
@@ -89,7 +139,8 @@ def extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEvidence:
     mark = new_datamark()
     canary = new_canary(settings.config()["guard"]["canary_prefix"])
     system = _SYSTEM.format(
-        spotlight_rule=SPOTLIGHT_SYSTEM_RULE.format(mark=mark), canary=canary
+        spotlight_rule=SPOTLIGHT_SYSTEM_RULE.format(mark=mark), canary=canary,
+        known_ids=", ".join(sorted(known_ids)),
     )
     user = spotlight(doc.text, mark, doc.doc_id)
 
@@ -104,6 +155,19 @@ def extract(doc: EvidenceDoc, known_ids: set[str]) -> ExtractedEvidence:
         data = json.loads(raw[start : end + 1])
         data["doc_id"] = doc.doc_id
         data.pop("canary", None)
+        # Keep only well-formed quantities rather than failing the whole record.
+        from agents.schemas import ClaimedQuantity
+        good = []
+        for q in data.get("claimed_quantities") or []:
+            try:
+                good.append(ClaimedQuantity.model_validate(q).model_dump())
+            except Exception:  # noqa: BLE001
+                continue
+        data["claimed_quantities"] = good[:20]
+        if not isinstance(data.get("unlisted_items"), list):
+            data["unlisted_items"] = []
+        data["unlisted_items"] = [u for u in data["unlisted_items"]
+                                  if isinstance(u, str) and u not in known_ids]
         parsed = ExtractedEvidence.model_validate(data)
         # Keep only ids that actually exist in the manifest.
         parsed.claimed_item_ids = [i for i in parsed.claimed_item_ids if i in known_ids]

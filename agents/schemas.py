@@ -7,6 +7,8 @@ field here that a downstream agent reads as an instruction.
 
 from __future__ import annotations
 
+import re
+
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Literal
@@ -128,6 +130,16 @@ class EvidenceDoc(BaseModel):
     trust: TrustLabel = TrustLabel.untrusted
 
 
+class ClaimedQuantity(BaseModel):
+    """A quantity the evidence states (e.g. a contractor's "2,400 sq ft drywall").
+    Compared against measured geometry by the consistency checker; never priced."""
+
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["drywall", "flooring", "baseboard", "other"]
+    value: float = Field(ge=0, le=100_000)
+    unit: Literal["m2", "sqft", "m", "ft"]
+
+
 class ExtractedEvidence(BaseModel):
     """The ONLY thing allowed to cross from quarantine into the privileged zone.
 
@@ -145,6 +157,20 @@ class ExtractedEvidence(BaseModel):
     mentions_total_loss: bool = False
     mentions_prior_damage: bool = False
     claimant_summary: str = Field(default="", max_length=400)
+    claimed_quantities: list[ClaimedQuantity] = Field(default_factory=list, max_length=20)
+    # Damaged things the evidence claims that are not manifest ids. Short names
+    # only, charset-restricted below: data for a consistency finding, never a prompt.
+    unlisted_items: list[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator("unlisted_items")
+    @classmethod
+    def _clean_unlisted(cls, v: list[str]) -> list[str]:
+        out = []
+        for x in v:
+            t = re.sub(r"[^a-z0-9 -]", "", str(x).lower()).strip()[:40]
+            if t and t not in out:
+                out.append(t)
+        return out[:10]
 
     @field_validator("claimed_amounts_usd")
     @classmethod

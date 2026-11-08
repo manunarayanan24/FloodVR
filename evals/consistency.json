@@ -1,7 +1,7 @@
 {
   "offline": false,
-  "cases": 7,
-  "passed": 7,
+  "cases": 11,
+  "passed": 11,
   "precision": 1.0,
   "recall": 1.0,
   "claim_changed_by_checker": 0,
@@ -25,7 +25,7 @@
       ],
       "claim_changed": false,
       "snippets": [
-        "contractor total $14,800 is 2.6x our rate-table high $5,760 for 2 item(s)"
+        "contractor total $14,800 is 2.6x our rate-table high $5,760 for 2 item(s) [refs: evidence:bid_padded, contracts/costs.json]"
       ]
     },
     {
@@ -39,7 +39,7 @@
       ],
       "claim_changed": false,
       "snippets": [
-        "contractor total $4,450 is 11.7x our rate-table high $380 for 1 item(s)"
+        "contractor total $4,450 is 11.7x our rate-table high $380 for 1 item(s) [refs: evidence:bid_padded_lines, contracts/costs.json]"
       ]
     },
     {
@@ -63,8 +63,8 @@
       ],
       "claim_changed": false,
       "snippets": [
-        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor)",
-        "claims 'electronics_undamaged' but the scene records it present and undamaged (severity 0, 1.45 m above floor)"
+        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor) [refs: evidence:homeowner_undamaged_laptop, manifest:laptop_undamaged]",
+        "claims 'electronics_undamaged' but the scene records it present and undamaged (severity 0, 1.45 m above floor) [refs: evidence:homeowner_undamaged_laptop, manifest:electronics_undamaged]"
       ]
     },
     {
@@ -92,7 +92,60 @@
       ],
       "claim_changed": false,
       "snippets": [
-        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor)"
+        "claims 'laptop_undamaged' but the scene records it present and undamaged (severity 0, 1.60 m above floor) [refs: evidence:homeowner_mixed, manifest:laptop_undamaged]"
+      ]
+    },
+    {
+      "id": "bid_drywall_area_clean",
+      "ok": true,
+      "expected": [],
+      "got": [],
+      "claim_changed": false,
+      "snippets": []
+    },
+    {
+      "id": "bid_drywall_area_padded",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_bid_quantity_exceeds_measured"
+      ],
+      "got": [
+        "CONSISTENCY_bid_quantity_exceeds_measured"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "states 2,400 sqft drywall (223.0 m2); measured flood-cut drywall is 86.1 m2 (whole house) [refs: evidence:bid_drywall_area_padded, contracts/samples/house_geometry.json]"
+      ]
+    },
+    {
+      "id": "bid_floor_area_padded",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_bid_quantity_exceeds_measured"
+      ],
+      "got": [
+        "CONSISTENCY_bid_quantity_exceeds_measured"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "states 650 sqft flooring (60.4 m2); measured floor area is 30.0 m2 (living_room) [refs: evidence:bid_floor_area_padded, contracts/samples/house_geometry.json]"
+      ]
+    },
+    {
+      "id": "homeowner_unlisted_items",
+      "ok": true,
+      "expected": [
+        "CONSISTENCY_item_not_in_scene",
+        "CONSISTENCY_item_not_in_scene"
+      ],
+      "got": [
+        "CONSISTENCY_item_not_in_scene",
+        "CONSISTENCY_item_not_in_scene"
+      ],
+      "claim_changed": false,
+      "snippets": [
+        "claims 'grand piano', which is not in the scene manifest [refs: evidence:homeowner_unlisted_items, contracts/samples/house_manifest.json]",
+        "claims 'wine fridge', which is not in the scene manifest [refs: evidence:homeowner_unlisted_items, contracts/samples/house_manifest.json]"
       ]
     }
   ]
