@@ -87,33 +87,29 @@ namespace FloodVR
                 {
                     camGO.transform.position = sp.position;
                     camGO.transform.rotation = Quaternion.Euler(0f, YawOffsets[i], 0f) * sp.rotation;
+                    cam.fieldOfView = 60f;
 
-                    cam.Render();
-                    RenderTexture.active = rt;
-                    tex.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
-                    tex.Apply();
-                    RenderTexture.active = null;
-
-                    byte[] png = tex.EncodeToPNG();
-                    string fileName = $"{spId}_{i}.png";
-                    File.WriteAllBytes(Path.Combine(screensDir, fileName), png);
+                    screenEntries.Add(CaptureOne(cam, camGO, tex, rt, screensDir, $"{spId}_{i}.png", spId, allDamageItems, allSceneTexts));
                     shotCount++;
-
-                    Vector3 euler = camGO.transform.eulerAngles;
-                    float pitch = euler.x > 180f ? euler.x - 360f : euler.x;
-
-                    screenEntries.Add(new ScreenEntry
-                    {
-                        filename = fileName,
-                        standpoint = spId,
-                        position = new Vec3Data { x = camGO.transform.position.x, y = camGO.transform.position.y, z = camGO.transform.position.z },
-                        yaw = euler.y,
-                        pitch = pitch,
-                        fov = cam.fieldOfView,
-                        visibleDamageIds = allDamageItems.Where(d => IsVisible(cam, d.transform)).Select(d => d.id).OrderBy(id => id).ToArray(),
-                        visibleSceneTextIds = allSceneTexts.Where(s => IsVisible(cam, s.transform)).Select(s => s.id).OrderBy(id => id).ToArray(),
-                    });
                 }
+            }
+
+            // Dedicated close-up on the fridge note: framed from the note's own
+            // current world transform, so it stays correct whether the fridge
+            // is upright (pre-flood) or tipped over (post-flood).
+            Transform noteCard = GameObject.Find("SceneText_fridge_sticky_note_Card")?.transform;
+            if (noteCard != null)
+            {
+                camGO.transform.position = noteCard.position + noteCard.forward * 0.75f;
+                camGO.transform.rotation = Quaternion.LookRotation(-noteCard.forward, noteCard.up);
+                cam.fieldOfView = 40f;
+
+                screenEntries.Add(CaptureOne(cam, camGO, tex, rt, screensDir, "StandPoint_Kitchen_note.png", "StandPoint_Kitchen_note", allDamageItems, allSceneTexts));
+                shotCount++;
+            }
+            else
+            {
+                Debug.LogWarning("[FloodVR] fridge sticky note card not found, skipping close-up capture.");
             }
 
             cam.targetTexture = null;
@@ -131,6 +127,34 @@ namespace FloodVR
             if (File.Exists(manifestSrc)) File.Copy(manifestSrc, manifestDest, true);
 
             Debug.Log($"[FloodVR] Captured {shotCount} screenshots + screens.json answer key to contracts/samples/screens/, copied manifest to contracts/samples/house_manifest.json");
+        }
+
+        private static ScreenEntry CaptureOne(Camera cam, GameObject camGO, Texture2D tex, RenderTexture rt,
+            string screensDir, string fileName, string standpointLabel, DamageItem[] allDamageItems, SceneText[] allSceneTexts)
+        {
+            cam.Render();
+            RenderTexture.active = rt;
+            tex.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+
+            byte[] png = tex.EncodeToPNG();
+            File.WriteAllBytes(Path.Combine(screensDir, fileName), png);
+
+            Vector3 euler = camGO.transform.eulerAngles;
+            float pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+
+            return new ScreenEntry
+            {
+                filename = fileName,
+                standpoint = standpointLabel,
+                position = new Vec3Data { x = camGO.transform.position.x, y = camGO.transform.position.y, z = camGO.transform.position.z },
+                yaw = euler.y,
+                pitch = pitch,
+                fov = cam.fieldOfView,
+                visibleDamageIds = allDamageItems.Where(d => IsVisible(cam, d.transform)).Select(d => d.id).OrderBy(id => id).ToArray(),
+                visibleSceneTextIds = allSceneTexts.Where(s => IsVisible(cam, s.transform)).Select(s => s.id).OrderBy(id => id).ToArray(),
+            };
         }
 
         // In-frustum (viewport test) AND not occluded by anything closer (raycast),

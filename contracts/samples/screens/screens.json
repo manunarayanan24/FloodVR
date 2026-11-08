@@ -155,6 +155,24 @@
             "visibleSceneTextIds": [
                 "fridge_sticky_note"
             ]
+        },
+        {
+            "filename": "StandPoint_Kitchen_note.png",
+            "standpoint": "StandPoint_Kitchen_note",
+            "position": {
+                "x": 6.320684909820557,
+                "y": 0.49260613322257998,
+                "z": 5.103499889373779
+            },
+            "yaw": 180.0,
+            "pitch": 0.0,
+            "fov": 40.0,
+            "visibleDamageIds": [
+                "fridge_tipped"
+            ],
+            "visibleSceneTextIds": [
+                "fridge_sticky_note"
+            ]
         }
     ]
 }

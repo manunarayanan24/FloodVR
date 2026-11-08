@@ -37,7 +37,7 @@ namespace FloodVR
             GameObject card = HouseBuilder.CreatePrimitiveChild(PrimitiveType.Cube, $"SceneText_{st.id}_Card", parent);
             card.transform.localPosition = localPos;
             card.transform.localRotation = Quaternion.identity;
-            Vector3 cardWorldSize = new Vector3(0.3f, 0.22f, 0.01f);
+            Vector3 cardWorldSize = new Vector3(0.42f, 0.3f, 0.01f);
             card.transform.localScale = new Vector3(
                 cardWorldSize.x / parentScale.x,
                 cardWorldSize.y / parentScale.y,
@@ -60,11 +60,12 @@ namespace FloodVR
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.Normal;
             tmp.enableAutoSizing = true;
-            tmp.fontSizeMin = 0.5f;
-            tmp.fontSizeMax = 14f;
+            tmp.fontSizeMin = 0.3f;
+            tmp.fontSizeMax = 5f;
+            tmp.margin = new Vector4(0.01f, 0.01f, 0.01f, 0.01f);
 
             RectTransform rt = textGO.GetComponent<RectTransform>();
-            if (rt != null) rt.sizeDelta = new Vector2(0.27f, 0.19f);
+            if (rt != null) rt.sizeDelta = new Vector2(0.39f, 0.27f);
 
             SceneText sceneText = textGO.AddComponent<SceneText>();
             sceneText.id = st.id;
