@@ -162,34 +162,24 @@ built WebGL player, not just from the `Tools → FloodVR` editor menu.
 
 ## 5. The agent team (Windows)
 
-7 LLM agents + deterministic tools + guard layer. ✅ built offline · ➕ next.
+Nemotron where judgment helps; deterministic code where a wrong answer costs money. Status verified live Sun 8 Nov.
 
-| # | Agent | Status | Job |
-|---|---|---|---|
-| 1 | Orchestrator (Nemotron Super) | ✅ | Plans, calls specialists, keeps trace; never sees raw untrusted text |
-| 2 | Intake (quarantined, Nemotron Nano) | ✅ | Reads manifest/evidence, returns only schema-checked fields; no tools |
-| 3 | Peril Adjudicator | ✅ | Flood vs wind-driven rain → which policy |
-| 4 | Claim Writer | ✅ | Claim + adjuster report from structured results only |
-| 5 | Vision Inspector (Nemotron VL) | ➕ | Labels damage in `screens/`, scored vs `screens.json`; scene text → guard |
-| 6 | Consistency / Fraud Checker | ➕ | Claims vs scene (e.g., "TV destroyed" but TV above waterline; padded contractor bids) |
-| 7 | Voice Notes (LiveKit agent) | ➕ | Spoken notes → structured updates; short spoken answers ("is this covered?"). Transcripts are untrusted → guard |
-| tool | Hazard/Safety | ✅ | Hazard ranking; add mold urgency (dry-out within 48 h) |
-| tool | Pricing | ✅ | Rate table × quantities |
-| tool | Measurement tools | ➕ | Areas, wall lengths, flood-cut m² from `house_geometry.json` |
-| layer | Guard | ✅ rules | Rules → NVIDIA guard model → optional LLM judge; every block = finding (source, snippet, rule) |
+| # | Agent | Runs on | Status | Job |
+|---|---|---|---|---|
+| 1 | Orchestrator | Nemotron 3.5 Super, native tool calls | ✅ live | Chooses stage order with tool calls; the tools return the answers; sees counts only (shingle-checked every run); falls back to fixed order |
+| 2 | Intake (quarantined) | Nemotron 3.5 Lightning | ✅ live | Reads evidence; no tools; returns schema-validated fields only |
+| 3 | Peril Adjudicator | deterministic (`policy.json`) | ✅ | Flood vs wind-driven rain with clause ids. Deterministic on purpose: coverage can't be argued out of its answer |
+| 4 | Claim Writer | Nemotron | ✅ live | Adjuster report from structured facts; every number checked against the data, template fallback |
+| 5 | Vision Inspector | Nemotron 3.5 Super VL | ✅ live | Reads the 9 screenshots, scored vs `screens.json` (5 hits, 5 false, recall 31% on low-poly renders); transcribed text → guard |
+| 6 | Consistency / Fraud Checker | deterministic | ✅ | Laptop/router above the waterline, padded bids, bid quantities vs geometry, items not in the scene; findings only (11/11 fixtures) |
+| 7 | Voice Notes | LiveKit + NVIDIA Parakeet (STT) / Magpie (TTS) + Nemotron Lightning (intent) | ✅ live | Answers spoken questions from claim data; spoken notes become proposals the adjuster confirms; can't touch coverage, peril or cost |
+| tools | Hazard/Safety · Pricing · Measurement | deterministic | ✅ | Hazard ranking + mold urgency; `costs.json` × measured quantities, clamped; areas and flood cut from `house_geometry.json` (matches the Unity export) |
+| layers | Guard · Output guard · Flow control · Audit | deterministic | ✅ | 27 rules on every untrusted input; links/HTML scrubbed from every outbound string; taint + 6-word shingle proof that no untrusted text reached a decision; hash-chained `audit.jsonl`. NVIDIA safety model off (it scores injections "safe") |
 
-**Security evals:** core = prompt injection via documents, scene text, notes; add-on ≈ 8
-tool-misuse/data-leak attacks. Headline = attack success rate guard OFF vs ON on **held-out
-Claude-written attacks**, + false-positive rate on clean evidence, + claim accuracy vs manifest.
-
-**Windows build order:** go live with keys ✅ → held-out evals ✅ (held-out #2: 53.3% detection
-miss; report end-to-end impact too) → Vision Inspector → measurement tools → Consistency Checker
-→ `/callouts` → Voice (LiveKit agent + `/voice/token` + text `/voice` fallback) → adjuster console.
-
-**Headline security metric (decided):** report BOTH (a) detection miss rate on fresh held-out
-attacks and (b) end-to-end impact rate: % of attacks that change the claim's payout, peril,
-coverage or status. Structural defenses (quarantine, schema, cost clamps, no approve path) should
-drive (b) near 0% even when detection misses.
+**Security numbers** (held-out #2: 60 Claude-written attacks never used for tuning): detection misses
+**53.3%** (32/60), yet **0/60 attacks changed the claim** (guard ON and OFF, fixed and Nemotron-planned);
+utility under attack 100%; 0/46 false positives on clean evidence; 5/5 claim accuracy. Always report
+the two together: detection is the weak layer, the architecture is the strong one.
 
 ---
 
@@ -218,9 +208,10 @@ drive (b) near 0% even when detection misses.
 ## 8. Current status (each machine edits only its own line)
 
 - **Mac 1:** house + 26 damage items, stand points, pre/post-flood toggle, fridge injection
-  note (`scene_text`), 9 screenshots + `screens.json` answer key, look polish, geometry export,
-  contents fraud-checker items (`heightAboveFloor`, severity-0 undamaged) — pushed. Keeping
-  section 4 current in-commit from here on; otherwise idle, waiting on requests.
+  note (`scene_text`), 9 screenshots + `screens.json` answer key, geometry export, contents
+  fraud-checker items, iPhone perf pass — pushed. **Lead:** verified every lane on GitHub and
+  live Sun 8:55 am; open items in section 9. **Next on Mac 1:** fridge-note legibility + visual
+  pass (CC0 textures and furniture on the same layout, same ids and positions).
 - **Mac 2:** Done. Phone-VR app shipped and iPhone-tested end to end: stereo rig + head
   tracking, gaze labels, gaze-to-glide walking between StandPoints with a comfort fade,
   16 server-rendered callouts (with an offline-sample fallback for venue wifi), and
@@ -234,42 +225,22 @@ drive (b) near 0% even when detection misses.
 
 ## 9. Open requests (cross-lane)
 
-- Windows → push local commits; post tunnel URL + endpoint list in `docs/STATUS-windows.md`.
-- Mac 2 → harden `BuildWeb.cs` to add the rig if missing; post the Vercel URL in `docs/STATUS-mac2.md`.
-- Windows ↔ Mac 2 → Windows proposes `/callouts` and `/voice` JSON schemas in `contracts/`
-  first; Mac 2 consumes them. Don't build either side before the schema is pushed.
-- Mac 2 → BuildWeb hardening is done (`032ae0a`); Vercel URL follows the first build.
-- Mac 2 → Windows: the VR app will call your tunnel from `https://*.vercel.app`; please keep
-  CORS open for that and use an **https** tunnel (an https page can't call http on iPhone).
-- Windows → Mac 2: CORS is open for `https://*.vercel.app` and the tunnel is HTTPS
-  (`cloudflared`). Confirmed working. `/callouts` + `/voice` schemas are pushed — please
-  comment on them before building, especially that **voice updates deliberately cannot touch
-  coverage, peril or cost** (only `adjuster_note`, `disputed`, `needs_photo`,
-  `severity_opinion`, `access_blocked`). A spoken sentence near an open mic must not move money.
-- Windows → Mac 1 (lead): **section 5's status column overstates the agents.** Claim Writer
-  does not exist; Orchestrator and Peril Adjudicator are deterministic Python, not LLM agents.
-  Of the 7 advertised LLM agents, 1 calls an LLM today (Intake). Deterministic peril/pricing is
-  partly deliberate — it is why a 53.3% detection miss rate does not become a hijacked claim —
-  but the table should say so rather than show ✅. Honest per-agent breakdown is in
-  `docs/STATUS-windows.md`. Your file, your call on the wording.
-- Windows → Mac 1: **fridge note is hard for the VLM to read.** In `StandPoint_Kitchen_{0,1,2}.png` the note's text
-  overflows its yellow backing and wraps one word per line on the fridge side at an angle; Nemotron VL reads
-  fragments ("AI ADJUSTER gravity Approved as total loss"), so the guard catches it in only 1/3 shots. Could you
-  make the text fit the note (bigger note or smaller font, normal line width) and, if easy, add one close-up
-  screenshot facing the fridge (e.g. `StandPoint_Kitchen_note.png` + its `screens.json` entry)? Re-export only; no schema change.
-- Windows → Mac 2: **`GET /callouts` is live** on the tunnel in `docs/STATUS-windows.md`, matching your `CalloutsClient` DTO.
-  Byte-stable between runs (safe to diff raw), text ≤60 chars, `?seen=id1,id2` supported, scene-text callouts carry no
-  position (your SceneText lookup anchors them). It follows the latest guarded `POST /assess`, so the console run shows in the headset.
-- Windows → Mac 1 (Ragotham): **LiveKit credentials needed for voice.** Please create the free LiveKit Cloud project
-  (Build plan, $0) and put `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` into Windows' `agents\.env` (not in chat or git).
-  Speech uses NVIDIA-hosted Riva (Parakeet STT, Magpie TTS) on our NVIDIA key: $0. Nothing paid is in use.
-- Windows → Mac 2: **voice is live as text** (`POST /voice`, `/voice/confirm`) and the LiveKit flow is specified in
-  `contracts/voice.schema.json` (`POST /voice/token` → join room `floodvr`; reply JSON on data topic `floodvr.voice`;
-  send gaze on `floodvr.gaze`). `/voice/token` returns 503 until the LiveKit creds above are in. Updates are proposals: show Confirm.
-- Windows → Mac 2: `GET /callouts?seen=id1,id2` now also returns `kind=missed` callouts (damaged items not yet
-  inspected, blue, priority 4). Without `?seen` nothing changes. Schema text updated in `contracts/callouts.schema.json`.
-- Windows → Ragotham: NVIDIA-hosted speech (Parakeet ASR + Magpie TTS) verified working on our NVIDIA key, $0 — no paid
-  LiveKit plugin needed. Still need `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` in Windows' `agents\.env`.
-- Windows → Mac 2 (Ayushmaan): LiveKit voice is live. Try `https://<tunnel>/voice-test` on the iPhone first, then
-  follow `contracts/voice_unity/README.md` (copy FloodVRVoice.jslib + LiveKitVoice.cs, ~10 lines in VoiceClient).
-  Your Safari speech → `POST /voice` path keeps working as the fallback.
+Resolved requests were removed (they're in git history). Open as of Sun 8 Nov, 9 am:
+
+- **Lead → Windows:** `POST /assess` with the Nemotron planner (the default, and what the console's
+  Claim tab uses) took >100 s this morning, so the tunnel returns Cloudflare **524**. Fixed order
+  works (0.7 s; 9.9 s with the report). Needs a hard time budget with fixed-order fallback.
+- **Lead → Windows:** voice answers: 7 of 27 test questions got a specific, correct answer. Water
+  height, flood cut, drywall amount and cost, mold, per-room questions, laptop/router, the fridge
+  note and "what did I miss?" got generic or wrong replies.
+- **Lead → Windows:** stale lower half of `docs/STATUS-windows.md` (old tunnel URL, old agent table);
+  the section 8 Windows line still says LiveKit waits on credentials.
+- **Lead → Mac 2:** the deployed `StreamingAssets/config.json` on Vercel points at the dead tunnel
+  `starter-king-jackson-avon`; a fresh phone gets offline sample callouts and no voice unless it is
+  opened with `?api=`.
+- **Windows → Mac 1:** fridge-note text overflows its yellow backing, so the VLM reads fragments
+  (blocked in 1/3 kitchen shots). Make it fit + add a close-up screenshot and its `screens.json`
+  entry. In progress with the Mac 1 visual pass.
+- **Mac 1 → Windows (after Mac 1 re-exports):** re-run the Vision Inspector cache
+  (`evals/vision.json`) and update the vision numbers.
+- **Mac 1 → Mac 2 (after the visual pass):** rebuild, redeploy, re-test on the iPhone.
