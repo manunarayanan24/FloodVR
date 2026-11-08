@@ -66,8 +66,16 @@ def rooms() -> dict[str, dict[str, Any]]:
             "flood_cut_m2": sum(_wall_area_below(w, fc) for w in walls),
             "baseboard_m": sum(_baseboard(w) for w in walls),
         }
+        wall_len = sum(w["length"]["m"] for w in walls)
+        holes_fc = sum(w["length"]["m"] * min(fc, w["height"]["m"]) for w in walls) - q["flood_cut_m2"]
+        holes_floor = wall_len - q["baseboard_m"]
         out[r["id"]] = {
             "label": r.get("label", r["id"]),
+            "math": {
+                "flood_cut_m2": f"{wall_len:g} m wall x {fc:g} m - {holes_fc:.2f} m2 openings = {q['flood_cut_m2']:.2f} m2",
+                "baseboard_m": f"{wall_len:g} m wall - {holes_floor:.2f} m door/arch gaps = {q['baseboard_m']:.2f} m",
+                "floor_m2": f"floor polygon = {q['floor_m2']:.2f} m2",
+            },
             **{k: round(v, 2) for k, v in q.items()},
             "exported": {"wall_below_wl_m2": r["wallAreaBelowWaterline"]["m2"],
                          "flood_cut_m2": r["floodCutDrywallArea"]["m2"]},

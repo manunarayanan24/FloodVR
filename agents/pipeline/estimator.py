@@ -56,6 +56,21 @@ def estimate_for(item: DamageItem) -> tuple[Estimate, list[SecurityFinding]]:
     return Estimate(low_usd=round(low, 2), high_usd=round(high, 2)), findings
 
 
+def explain(item: DamageItem) -> str | None:
+    """The pricing arithmetic for an item priced by geometry quantity (for the trace)."""
+    table = settings.costs()
+    entry = table["types"][_type_for(item)]
+    geo, q = entry.get("per_geometry"), quantity_for(item)
+    if not (geo and q):
+        return None
+    est, _ = estimate_for(item)
+    mult = float(table["severity_multiplier"][str(item.severity)])
+    return (f"{item.id}: {q['value']:g} {q['unit']} x ${geo['low']}-{geo['high']}/{q['unit']} = "
+            f"${geo['low'] * q['value']:,.2f}-{geo['high'] * q['value']:,.2f}; table base "
+            f"${entry['low_usd'] * mult:,.0f}-{entry['high_usd'] * mult:,.0f}; "
+            f"estimate = max = ${est.low_usd:,.2f}-{est.high_usd:,.2f}")
+
+
 def quantity_for(item: DamageItem) -> dict | None:
     """Geometry quantity used for this item's price, if its type declares one."""
     geo = settings.costs()["types"][_type_for(item)].get("per_geometry")

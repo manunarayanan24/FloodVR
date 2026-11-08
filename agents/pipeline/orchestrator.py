@@ -18,7 +18,7 @@ import time
 from agents import audit, guard, output_guard, settings
 from agents.pipeline import estimator, intake, peril, safety
 from agents.schemas import (
-    AssessRequest, Channel, ClaimDraft, Coverage, LineItem, SecurityFinding,
+    AssessRequest, Channel, ClaimDraft, Coverage, Estimate, LineItem, SecurityFinding,
     TraceStep, Totals, TrustLabel,
 )
 from agents.taint import Ledger
@@ -37,7 +37,7 @@ class StageOrderError(RuntimeError):
     """A stage was called before the stage it depends on."""
 
 
-REQUIRED_STAGES = ("guard", "intake", "adjudicate", "consistency", "triage")
+REQUIRED_STAGES = ("guard", "intake", "vision", "measure", "peril", "price", "consistency", "triage")
 
 
 class Run:
@@ -172,9 +172,39 @@ class Run:
         return {"documents_extracted": len(self.extracted),
                 "documents_refused": len(self.quarantined_docs)}
 
+    # ---- Measurement tools (deterministic geometry) ----------------------
+    def measure(self) -> dict:
+        """Quantities from house_geometry.json, with the arithmetic in the trace."""
+        if "measure" in self.done:
+            return {"already_done": True}
+        from agents.pipeline import measure
+        t0 = time.perf_counter()
+        rooms = measure.rooms()
+        lines = []
+        for rid, r in rooms.items():
+            lines.append(f"{rid}: flood cut {r['math']['flood_cut_m2']}; "
+                         f"baseboard {r['math']['baseboard_m']}; {r['math']['floor_m2']}")
+        priced = [x for x in (estimator.explain(i) for i in self.req.manifest.items
+                              if not i.is_undamaged) if x]
+        cc = measure.cross_check()
+        self.trace.append(TraceStep(
+            agent="measurement_tools", model="deterministic (house_geometry.json)",
+            ms=(time.perf_counter() - t0) * 1000,
+            tool_calls=["flood_cut_area", "floor_area", "baseboard_length"],
+            note=(" | ".join(lines + priced)
+                  + f" | cross-check vs Unity export: {'all match' if cc['all_match'] else 'MISMATCH'}"),
+        ))
+        self.done.append("measure")
+        tot = measure.summary()["house_totals"]
+        return {"rooms": len(rooms), "flood_cut_m2": tot["flood_cut_m2"],
+                "floor_m2": tot["floor_m2"], "baseboard_m": tot["baseboard_m"],
+                "priced_by_quantity": len(priced), "cross_check_ok": cc["all_match"]}
+
     # ---- Peril / coverage + estimate -------------------------------------
-    def adjudicate(self) -> dict:
-        if "adjudicate" in self.done:
+    def peril(self) -> dict:
+        """Peril / coverage per damaged item from contracts/policy.json (deterministic).
+        Line items are created here with a zero estimate that price() fills in."""
+        if "peril" in self.done:
             return {"already_done": True}
         self._need("intake")
         req, ledger = self.req, self.ledger
@@ -192,32 +222,21 @@ class Run:
                 continue
 
             p, cov, excl, conf, rationale = peril.adjudicate(item)
-            est, bound_findings = estimator.estimate_for(item)
-            qty = estimator.quantity_for(item)
-            self.findings.extend(bound_findings)
 
             # Declare what fed this decision. Peril comes from the manifest item
-            # (machine-generated) and the policy file (ours). Cost comes from the
-            # manifest item and the rate table. Evidence feeds NEITHER — it only
-            # ever lands in evidence_refs, which is display metadata.
+            # (machine-generated) and the policy file (ours). Evidence feeds NEITHER:
+            # it only ever lands in evidence_refs, which is display metadata.
             for fld in ("peril", "coverage", "rationale", "confidence"):
                 ledger.record(f"line_items.{item.id}.{fld}",
                               f"manifest:{item.id}", TrustLabel.machine)
                 ledger.record(f"line_items.{item.id}.{fld}",
                               "contracts/policy.json", TrustLabel.trusted)
-            ledger.record(f"line_items.{item.id}.estimate",
-                          "contracts/costs.json", TrustLabel.trusted)
-            ledger.record(f"line_items.{item.id}.estimate",
-                          f"manifest:{item.id}", TrustLabel.machine)
-            if qty:
-                ledger.record(f"line_items.{item.id}.estimate",
-                              "contracts/samples/house_geometry.json", TrustLabel.machine)
 
             refs = [f"manifest:{item.id}", *evidence_by_item.get(item.id, [])]
             self.line_items.append(LineItem(
                 item_id=item.id, label=item.label, peril=p, coverage=cov,
-                exclusion_ref=excl, estimate=est, confidence=conf,
-                evidence_refs=refs, rationale=rationale, quantity=qty,
+                exclusion_ref=excl, estimate=Estimate(low_usd=0.0, high_usd=0.0),
+                confidence=conf, evidence_refs=refs, rationale=rationale,
             ))
             nh = peril.needs_human(item, p, cov)
             if nh:
@@ -231,9 +250,95 @@ class Run:
             note=f"{wdr} wind-driven-rain determination(s); {len(self.undamaged)} "
                  f"severity-0 item(s) excluded as undamaged",
         ))
-        self.done.append("adjudicate")
+        self.done.append("peril")
         return {"line_items": len(self.line_items), "wind_driven_rain": wdr,
                 "needs_human": len(self.needs_human), "undamaged": len(self.undamaged)}
+
+    def price(self) -> dict:
+        """Estimates: contracts/costs.json x measured quantity, clamped (deterministic)."""
+        if "price" in self.done:
+            return {"already_done": True}
+        self._need("peril", "measure")
+        ledger = self.ledger
+        t0 = time.perf_counter()
+        items = {i.id: i for i in self.req.manifest.items}
+        clamped = 0
+        for li in self.line_items:
+            item = items[li.item_id]
+            est, bound_findings = estimator.estimate_for(item)
+            qty = estimator.quantity_for(item)
+            self.findings.extend(bound_findings)
+            clamped += bool(bound_findings)
+            ledger.record(f"line_items.{item.id}.estimate",
+                          "contracts/costs.json", TrustLabel.trusted)
+            ledger.record(f"line_items.{item.id}.estimate",
+                          f"manifest:{item.id}", TrustLabel.machine)
+            if qty:
+                ledger.record(f"line_items.{item.id}.estimate",
+                              "contracts/samples/house_geometry.json", TrustLabel.machine)
+            li.estimate = est
+            li.quantity = qty
+        low = sum(li.estimate.low_usd for li in self.line_items)
+        high = sum(li.estimate.high_usd for li in self.line_items)
+        self.trace.append(TraceStep(
+            agent="pricing", model="deterministic (contracts/costs.json)",
+            ms=(time.perf_counter() - t0) * 1000, tool_calls=["lookup_cost"],
+            note=f"{len(self.line_items)} line(s) priced, "
+                 f"{sum(1 for li in self.line_items if li.quantity)} by measured quantity, "
+                 f"{clamped} clamped; ${low:,.2f}-${high:,.2f}",
+        ))
+        self.done.append("price")
+        return {"priced": len(self.line_items), "clamped": clamped,
+                "by_quantity": sum(1 for li in self.line_items if li.quantity)}
+
+    def adjudicate(self) -> dict:
+        """peril() then price(), for callers that want both in one step."""
+        self.peril()
+        if "measure" not in self.done:
+            self.measure()
+        return self.price()
+
+    def vision(self) -> dict:
+        """Vision Inspector result for this house (cached Nemotron VL run, no LLM call
+        here). Its transcriptions are UNTRUSTED: registered with the flow ledger so
+        the end-of-run check proves none reached a decision, and guarded again."""
+        if "vision" in self.done:
+            return {"already_done": True}
+        from agents.pipeline.vision import cached
+        t0 = time.perf_counter()
+        v = cached()
+        if not v:
+            self.trace.append(TraceStep(agent="vision_inspector", model="none",
+                                        ms=0.0, note="no vision run cached"))
+            self.done.append("vision")
+            return {"available": False}
+        flagged_frames = 0
+        for img in v["images"]:
+            text = " ".join(img.get("transcribed_text", []))
+            if not text.strip():
+                continue
+            self.ledger.record_untrusted(f"vlm:{img['filename']}", text)
+            blocked, f = _guard_text(text, f"vision:{img['filename']}", Channel.vlm_output,
+                                     self.req.guard_enabled)
+            for x in f:
+                x.action_taken = "blocked" if self.req.guard_enabled else "flagged_only"
+            self.findings.extend(f)
+            flagged_frames += bool(f)
+        s = v["summary"]
+        d = s["detections_overall"]
+        truth = d["true_positive"] + len(d["missed"])
+        self.trace.append(TraceStep(
+            agent="vision_inspector", model=next((i["model"] for i in v["images"] if i.get("model")), "vlm"),
+            ms=(time.perf_counter() - t0) * 1000, tool_calls=["vision_read"],
+            note=(f"found {d['true_positive']} of {truth} visible damage detections across "
+                  f"{s['images']} frames ({d['false_positive']} extra), unique items "
+                  f"{s['unique_items_found']}; scene text flagged in {flagged_frames}/"
+                  f"{s['scene_text_images']} fridge frames. Upper bound: low-poly render. "
+                  f"Feeds no decision. Cached run {v['generated_at'][:16]}"),
+        ))
+        self.done.append("vision")
+        return {"available": True, "frames": s["images"], "found": d["true_positive"],
+                "of": truth, "extra": d["false_positive"], "text_flagged_frames": flagged_frames}
 
     def consistency(self) -> dict:
         """Fraud checker: evidence vs scene. Findings only; never edits the claim."""
@@ -346,7 +451,10 @@ def assess(req: AssessRequest) -> ClaimDraft:
     run = Run(req)
     run.guard()
     run.intake()
-    run.adjudicate()
+    run.vision()
+    run.measure()
+    run.peril()
+    run.price()
     run.consistency()
     run.triage()
     return run.finalize()
