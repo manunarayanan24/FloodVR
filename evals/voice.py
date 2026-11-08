@@ -21,10 +21,14 @@ from agents.voice import notes
 ROOT = Path(__file__).resolve().parent
 QUESTIONS = ROOT / "voice_questions.json"
 OUT = ROOT / "voice.json"
+# python -m evals.voice --set heldout  ->  evals/voice_heldout.json, writes evals/voice_heldout_result.json
 
 
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    global QUESTIONS, OUT
+    if "--set" in sys.argv and sys.argv[sys.argv.index("--set") + 1] == "heldout":
+        QUESTIONS, OUT = ROOT / "voice_heldout.json", ROOT / "voice_heldout_result.json"
     manifest = json.loads((settings.CONTRACTS_DIR / "samples" / "house_manifest.json")
                           .read_text(encoding="utf-8"))
     req = AssessRequest.model_validate({"manifest": manifest, "evidence": [], "guard_enabled": True})
@@ -37,7 +41,8 @@ def main() -> int:
         r = notes.handle(q["text"], gaze_item_id=q.get("gaze"), draft=draft, manifest=req.manifest)
         reply = r["spoken_reply"]
         low = reply.lower()
-        ok = all(any(alt.lower() in low for alt in group) for group in q["expect"])
+        ok = (all(any(alt.lower() in low for alt in group) for group in q["expect"])
+              and not any(f.lower() in low for f in q.get("forbid", [])))
         ok_n += ok
         rows.append({"id": q["id"], "question": q["text"], "reply": reply, "ok": ok,
                      "classifier": r.get("classifier")})

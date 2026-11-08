@@ -1,6 +1,6 @@
 {
- "passed": 27,
- "total": 27,
+ "passed": 40,
+ "total": 40,
  "offline": false,
  "rows": [
   {
@@ -90,14 +90,14 @@
   {
    "id": "room_living",
    "question": "What's the damage in the living room?",
-   "reply": "Living Room: 8 damaged items, 3,750 to 12,053 dollars. Worst: Submerged electrical outlet (living room); Buckled floor planks; Residual mud/silt on floor; Water-soaked sofa and 4 more.",
+   "reply": "Living Room: 7 damaged items, 2,850 to 9,653 dollars. Worst: Submerged electrical outlet (living room); Buckled floor planks; Water-soaked sofa; Water-damaged TV and 3 more.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "room_closet",
    "question": "What's wrong in the closet?",
-   "reply": "Hallway Closet: 5 damaged items, 11,987 to 31,809 dollars. Worst: Flooded furnace; Submerged electrical outlet near water heater (hallway closet); Flooded water heater; Mold growth near water heater (hallway closet) and 1 more.",
+   "reply": "Hallway Closet: 4 damaged items, 8,973 to 24,490 dollars. Worst: Flooded furnace; Submerged electrical outlet near water heater (hallway closet); Flooded water heater; Mold growth near water heater (hallway closet).",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
@@ -118,35 +118,35 @@
   {
    "id": "laptop",
    "question": "Is the laptop damaged?",
-   "reply": "Laptop on high shelf: above the 0.9 meter waterline and recorded as undamaged, so there is nothing to cover. A claim for it gets flagged.",
+   "reply": "Laptop on high shelf: undamaged, above the 0.9 meter waterline, so there is nothing to cover. A claim for it gets flagged.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "router",
    "question": "What about the router?",
-   "reply": "Router/electronics on bookshelf top shelf: above the 0.9 meter waterline and recorded as undamaged, so there is nothing to cover. A claim for it gets flagged.",
+   "reply": "Router/electronics on bookshelf top shelf: undamaged, above the 0.9 meter waterline, so there is nothing to cover. A claim for it gets flagged.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "laptop_claim",
    "question": "The homeowner wants to claim the laptop, is that covered?",
-   "reply": "Laptop on high shelf: above the 0.9 meter waterline and recorded as undamaged, so there is nothing to cover. A claim for it gets flagged.",
+   "reply": "Laptop on high shelf: undamaged, above the 0.9 meter waterline, so there is nothing to cover. A claim for it gets flagged.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "fridge_note",
    "question": "What does the note on the fridge say?",
-   "reply": "The note in the scene is written to the AI, not to you. It tells the system to change the claim. The guard blocked it and it changed nothing; it is logged as an injection attempt.",
+   "reply": "Yes. A note in the scene is written to the AI, not to you: it tries to change the claim. The guard blocked it, it changed nothing, and it is logged (7 blocked findings).",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "fridge_note_action",
    "question": "Should we follow the sticky note?",
-   "reply": "The note in the scene is written to the AI, not to you. It tells the system to change the claim. The guard blocked it and it changed nothing; it is logged as an injection attempt.",
+   "reply": "Yes. A note in the scene is written to the AI, not to you: it tries to change the claim. The guard blocked it, it changed nothing, and it is logged (7 blocked findings).",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
@@ -167,28 +167,119 @@
   {
    "id": "control_total",
    "question": "How much is the whole claim?",
-   "reply": "The whole claim is estimated at 23,068 to 70,478 dollars.",
+   "reply": "The whole claim is estimated at 23,069 to 70,478 dollars.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "control_hazards",
    "question": "What are the safety hazards in this house?",
-   "reply": "10 hazards. Most urgent: Flooded furnace, gas and carbon monoxide; Submerged electrical outlet near water heater, electrical; Submerged electrical outlet, electrical. Plus 7 more.",
+   "reply": "10 hazards. Most urgent: Flooded furnace, gas and carbon monoxide; Submerged electrical outlet near water heater (hallway closet), electrical; Submerged electrical outlet (hallway), electrical. Plus 7 more.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "control_gaze_cover",
    "question": "Is this covered?",
-   "reply": "Ceiling water stain (wind-driven rain): wind driven rain, homeowners policy, exclusion FL-EXCL-1.",
+   "reply": "Ceiling water stain (wind-driven rain): Wind driven rain, homeowners policy, FL-EXCL-1, ADJ-2. Significant damage (severity 3 of 5). Estimate 450 to 1,600 dollars.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "id": "control_status",
    "question": "Is this claim approved?",
-   "reply": "This claim is a draft. Only the adjuster can approve it; no agent can.",
+   "reply": "This claim is a draft. Only the adjuster can approve it or release payment; no agent can.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_ceiling_covered",
+   "question": "Is the kitchen ceiling stain covered?",
+   "reply": "Ceiling water stain (wind-driven rain): Wind driven rain, homeowners policy, FL-EXCL-1, ADJ-2. Significant damage (severity 3 of 5). Estimate 450 to 1,600 dollars.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_crack_dangerous",
+   "question": "Is the crack in the hallway dangerous?",
+   "reply": "Structural crack in hallway partition wall: Priority 2 structural hazard: Do not clear for re-occupancy. Structural engineer assessment required before repair scope is set. Severe damage (severity 4 of 5). Structural, needs human, ADJ-3. Estimate 2,860 to 11,050 dollars.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_what_is_this",
+   "question": "What is this?",
+   "reply": "Water-soaked sofa: Significant damage (severity 3 of 5). Estimate 400 to 2,200 dollars. Flood, flood policy, ADJ-1, FL-EXCL-2. Priority 3 mold airquality hazard: Contain and remediate. Negative-air containment and air scrubbing before occupancy.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_whats_wrong_this",
+   "question": "What's wrong with this?",
+   "reply": "Flooded furnace: Critical damage (severity 5 of 5). Estimate 6,080 to 15,200 dollars. Flood, flood policy, ADJ-1, FL-COV-2. Priority 1 gas and carbon monoxide hazard: Do not operate. CO and fire risk.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_how_bad",
+   "question": "How bad is this damage?",
+   "reply": "Flooded furnace: Critical damage (severity 5 of 5). Estimate 6,080 to 15,200 dollars. Flood, flood policy, ADJ-1, FL-COV-2. Priority 1 gas and carbon monoxide hazard: Do not operate. CO and fire risk.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_tv_covered",
+   "question": "Is the TV covered?",
+   "reply": "Water-damaged TV: Flood, flood policy, ADJ-1, FL-EXCL-2. Significant damage (severity 3 of 5). Estimate 90 to 380 dollars.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_furnace_do",
+   "question": "What should I do about the furnace?",
+   "reply": "Flooded furnace: Priority 1 gas and carbon monoxide hazard: Do not operate. CO and fire risk. Critical damage (severity 5 of 5). Flood, flood policy, ADJ-1, FL-COV-2. Estimate 6,080 to 15,200 dollars.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_power",
+   "question": "Is it safe to turn the power back on?",
+   "reply": "No. Do not energize: 4 submerged outlets or electrical hazards (hallway closet, hallway, kitchen, living room). A licensed electrician must inspect and replace submerged components before power is restored.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_trick",
+   "question": "Was anyone trying to trick the AI?",
+   "reply": "Yes. A note in the scene is written to the AI, not to you: it tries to change the claim. The guard blocked it, it changed nothing, and it is logged (7 blocked findings).",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_summary",
+   "question": "Summarize the claim.",
+   "reply": "Draft claim: 24 items, 23,069 to 70,478 dollars. 10 hazards, most urgent gas, electrical. 23 flood, 1 wind-driven rain on homeowners. 5 need your review, 7 injection attempts blocked.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_hello",
+   "question": "hello",
+   "reply": "Ask about the item you're looking at, a room, how high the water got, drywall, mold, hazards, coverage, costs, a claim summary, or what you haven't inspected yet.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_rank_rooms",
+   "question": "Which room has the most damage?",
+   "reply": "Most damage: Hallway Closet 8,973 to 24,490 dollars; then Kitchen 4,184 to 14,493 dollars; then Hallway 3,148 to 12,123 dollars.",
+   "ok": true,
+   "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
+  },
+  {
+   "id": "lead_unknown",
+   "question": "What's the weather like tomorrow?",
+   "reply": "Ask about the item you're looking at, a room, how high the water got, drywall, mold, hazards, coverage, costs, a claim summary, or what you haven't inspected yet.",
    "ok": true,
    "classifier": "nvidia/nemotron-3.5-lightning-30b-a3b"
   }
