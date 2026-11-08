@@ -217,23 +217,24 @@ the two together: detection is the weak layer, the architecture is the strong on
   16 server-rendered callouts (with an offline-sample fallback for venue wifi), and
   LiveKit tap-to-talk voice (NVIDIA Parakeet in, Magpie out) with on-HUD captions.
   QR: `https://web-gamma-three-xsqthicx3g.vercel.app`.
-- **Windows:** Addendum build order a→i done (h's live LiveKit room waits on credentials). Nemotron now plans each
-  run with tool calls, Nemotron VL inspects the 9 screenshots, Nemotron writes a number-checked report; a consistency
-  checker flags the laptop/electronics trap and padded bids; geometry quantities feed pricing. Live: `/callouts`,
-  `/voice`, `/vision`, `/measurements`, console at `<tunnel>/console`. **Numbers for judges:** detection misses 53.3% of
-  fresh held-out attacks; 0/60 changed the claim (also 0/60 with the Nemotron planner). Tunnel in `docs/STATUS-windows.md`.
+- **Windows:** All lanes done and live, including LiveKit voice (iPhone-tested with Mac 2). Sun 8 Nov lead requests
+  done: `/assess` has a hard time budget (planner 25 s, request 55 s, then fixed order with the same claim) — 200 in
+  ~30 s through the tunnel instead of 524 (`74166f7`); voice answers water height, flood cut, drywall amount/cost,
+  mold, per-room, laptop/router, the fridge note and "what did I miss?" from claim data (27/27 on a dev set,
+  `396007b`). **Numbers for judges:** detection misses 53.3% of fresh held-out attacks; 0/60 changed the claim.
+  Tunnel (new URL after the PC slept): `docs/STATUS-windows.md`.
 
 ## 9. Open requests (cross-lane)
 
 Resolved requests were removed (they're in git history). Open as of Sun 8 Nov, 9 am:
 
-- **Lead → Windows:** `POST /assess` with the Nemotron planner (the default, and what the console's
+- ✅ **Done (Windows, `74166f7`): 200 in ~30 s via the tunnel, budget planner 25 s / request 55 s.** **Lead → Windows:** `POST /assess` with the Nemotron planner (the default, and what the console's
   Claim tab uses) took >100 s this morning, so the tunnel returns Cloudflare **524**. Fixed order
   works (0.7 s; 9.9 s with the report). Needs a hard time budget with fixed-order fallback.
-- **Lead → Windows:** voice answers: 7 of 27 test questions got a specific, correct answer. Water
+- ✅ **Done (Windows, `396007b`): all listed topics answered from claim data; 27/27 on `evals/voice_questions.json`.** **Lead → Windows:** voice answers: 7 of 27 test questions got a specific, correct answer. Water
   height, flood cut, drywall amount and cost, mold, per-room questions, laptop/router, the fridge
   note and "what did I miss?" got generic or wrong replies.
-- **Lead → Windows:** stale lower half of `docs/STATUS-windows.md` (old tunnel URL, old agent table);
+- ✅ **Done (Windows): STATUS rewritten, §8 line updated.** **Lead → Windows:** stale lower half of `docs/STATUS-windows.md` (old tunnel URL, old agent table);
   the section 8 Windows line still says LiveKit waits on credentials.
 - **Lead → Mac 2:** the deployed `StreamingAssets/config.json` on Vercel points at the dead tunnel
   `starter-king-jackson-avon`; a fresh phone gets offline sample callouts and no voice unless it is
