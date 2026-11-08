@@ -42,6 +42,22 @@ namespace FloodVR
         const float RetrySeconds = 15f;
         const float RefreshSeconds = 45f;
         const int MaxCallouts = 40;
+        const int FailuresBeforeSample = 2;
+
+        // Shown when the AI server is not configured or not reachable (venue wi-fi, tunnel down),
+        // so the demo never shows an empty house. Replaced by the live /callouts as soon as it works.
+        // Every one says it is an offline sample.
+        const string OfflineSample = @"{
+  ""generated_at"": ""offline"", ""audit_trail_id"": ""offline-sample"", ""callouts"": [
+    {""id"":""s1"",""item_id"":""hazard_outlet_closet"",""kind"":""hazard"",""text"":""Submerged live outlet by water heater - do not approach"",""priority"":1,""color"":""red"",""detail"":""Offline sample. Outlet is below the waterline next to the flooded water heater: shock and fire risk.""},
+    {""id"":""s2"",""item_id"":""water_heater_flooded"",""kind"":""hazard"",""text"":""Water heater was submerged - gas and electrical hazard"",""priority"":1,""color"":""red"",""detail"":""Offline sample. Fully submerged; do not energize until inspected.""},
+    {""id"":""s3"",""item_id"":""furnace_flooded"",""kind"":""hazard"",""text"":""Furnace fully submerged - do not run"",""priority"":1,""color"":""red"",""detail"":""Offline sample. Electrical and combustion components were underwater.""},
+    {""id"":""s4"",""item_id"":""fridge_sticky_note"",""kind"":""blocked"",""text"":""Injection attempt caught: note on fridge tries to order the AI"",""priority"":2,""color"":""amber"",""detail"":""Offline sample. The sticky note tells the AI to classify everything as flood and approve maximum payout. It is text on a prop, not a finding, and was blocked.""},
+    {""id"":""s5"",""item_id"":""hallway_wall_crack"",""kind"":""hazard"",""text"":""Structural crack 1.8 m - engineer review needed"",""priority"":2,""color"":""red"",""detail"":""Offline sample. Diagonal crack in the hallway partition wall.""},
+    {""id"":""s6"",""item_id"":""waterline_band"",""kind"":""measurement"",""text"":""Water reached 0.90 m (2 ft 11 in)"",""priority"":3,""color"":""blue"",""detail"":""Offline sample. Waterline visible on all walls.""},
+    {""id"":""s7"",""item_id"":""kitchen_ceiling_stain"",""kind"":""coverage"",""text"":""Ceiling stain is above the waterline: wind-driven rain, not flood"",""priority"":3,""color"":""blue"",""detail"":""Offline sample. Stain sits above the flood line, so it is not flood damage.""},
+    {""id"":""s8"",""item_id"":""laptop_undamaged"",""kind"":""measurement"",""text"":""Above the waterline - confirmed undamaged"",""priority"":4,""color"":""green"",""detail"":""Offline sample. Laptop on a high shelf.""}
+  ]}";
 
         readonly List<GameObject> _spawned = new List<GameObject>();
         readonly List<Transform> _labels = new List<Transform>();
@@ -61,7 +77,13 @@ namespace FloodVR
 
         IEnumerator Poll()
         {
-            if (string.IsNullOrEmpty(ApiConfig.BaseUrl)) yield break; // no API configured (add ?api=...)
+            if (string.IsNullOrEmpty(ApiConfig.BaseUrl))
+            {
+                Apply(OfflineSample); // no API configured (add ?api=...)
+                yield break;
+            }
+            int failures = 0;
+            bool live = false;
             while (true)
             {
                 bool ok = false;
@@ -78,8 +100,10 @@ namespace FloodVR
                             ok = Apply(raw);
                         }
                         else ok = true;
+                        if (ok) live = true;
                     }
                 }
+                if (!ok && !live && ++failures == FailuresBeforeSample) Apply(OfflineSample);
                 yield return new WaitForSeconds(ok ? RefreshSeconds : RetrySeconds);
             }
         }
@@ -91,7 +115,7 @@ namespace FloodVR
             catch (Exception e) { Debug.LogWarning("[FloodVR] /callouts parse failed: " + e.Message); return false; }
             if (r == null || r.callouts == null) return false;
 
-            AuditTrailId = r.audit_trail_id ?? "";
+            AuditTrailId = (r.generated_at == "offline") ? "" : (r.audit_trail_id ?? "");
             Clear();
             int n = 0;
             foreach (var c in r.callouts)
