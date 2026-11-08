@@ -32,6 +32,13 @@ def estimate_for(item: DamageItem) -> tuple[Estimate, list[SecurityFinding]]:
         low = max(low, float(per_unit["low"]) * item.measuredValue)
         high = max(high, float(per_unit["high"]) * item.measuredValue)
 
+    geo = entry.get("per_geometry")
+    if geo:
+        q = quantity_for(item)
+        if q:
+            low = max(low, float(geo["low"]) * q["value"])
+            high = max(high, float(geo["high"]) * q["value"])
+
     findings: list[SecurityFinding] = []
     cap = float(table["global_clamp"]["max_line_item_usd"])
     if high > cap:
@@ -47,6 +54,15 @@ def estimate_for(item: DamageItem) -> tuple[Estimate, list[SecurityFinding]]:
     if low > high:
         low = high
     return Estimate(low_usd=round(low, 2), high_usd=round(high, 2)), findings
+
+
+def quantity_for(item: DamageItem) -> dict | None:
+    """Geometry quantity used for this item's price, if its type declares one."""
+    geo = settings.costs()["types"][_type_for(item)].get("per_geometry")
+    if not geo:
+        return None
+    from agents.pipeline import measure
+    return measure.quantity(item.id, geo["quantity"])
 
 
 def trade_for(item: DamageItem) -> str:

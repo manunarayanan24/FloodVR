@@ -146,6 +146,16 @@ def attack_demo(req: AttackDemoRequest) -> JSONResponse:
     })
 
 
+@app.get("/measurements")
+def measurements() -> dict:
+    """Room quantities recomputed from house_geometry.json + cross-check vs Mac 1's export."""
+    from agents.pipeline import measure
+    s = measure.summary()
+    if not s["rooms"]:
+        raise HTTPException(404, "house_geometry.json not present")
+    return s
+
+
 @app.get("/vision")
 def vision() -> dict:
     """Vision Inspector result (Nemotron VL vs screens.json), from the cache that

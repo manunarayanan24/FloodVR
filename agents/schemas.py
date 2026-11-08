@@ -184,6 +184,8 @@ class LineItem(BaseModel):
     confidence: float = Field(ge=0, le=1)
     evidence_refs: list[str] = Field(default_factory=list)
     rationale: str = ""
+    # Geometry quantity behind the estimate (agents/pipeline/measure.py), if any.
+    quantity: dict | None = None
 
 
 class Hazard(BaseModel):

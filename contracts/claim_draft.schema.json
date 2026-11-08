@@ -145,6 +145,13 @@
           },
           "rationale": {
             "type": "string"
+          },
+          "quantity": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Geometry quantity behind the estimate: {value, unit (m2|m), kind (flood_cut_m2|floor_m2|wall_below_wl_m2|baseboard_m), rooms[], source}. Null when the item's cost type has no per_geometry rate."
           }
         }
       }

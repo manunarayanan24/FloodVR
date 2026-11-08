@@ -193,6 +193,7 @@ class Run:
 
             p, cov, excl, conf, rationale = peril.adjudicate(item)
             est, bound_findings = estimator.estimate_for(item)
+            qty = estimator.quantity_for(item)
             self.findings.extend(bound_findings)
 
             # Declare what fed this decision. Peril comes from the manifest item
@@ -208,12 +209,15 @@ class Run:
                           "contracts/costs.json", TrustLabel.trusted)
             ledger.record(f"line_items.{item.id}.estimate",
                           f"manifest:{item.id}", TrustLabel.machine)
+            if qty:
+                ledger.record(f"line_items.{item.id}.estimate",
+                              "contracts/samples/house_geometry.json", TrustLabel.machine)
 
             refs = [f"manifest:{item.id}", *evidence_by_item.get(item.id, [])]
             self.line_items.append(LineItem(
                 item_id=item.id, label=item.label, peril=p, coverage=cov,
                 exclusion_ref=excl, estimate=est, confidence=conf,
-                evidence_refs=refs, rationale=rationale,
+                evidence_refs=refs, rationale=rationale, quantity=qty,
             ))
             nh = peril.needs_human(item, p, cov)
             if nh:
