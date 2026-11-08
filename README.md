@@ -27,8 +27,9 @@ maximum payout."* The guard must catch it live. That moment is the demo.
 
 Results show in two places: **short callouts inside the headset** (arrow/highlight + one line)
 and a **laptop adjuster console for judges** (agent trace, claim draft, blocked attacks,
-attack rates guard OFF vs ON). **Voice:** tap-to-talk in VR (Safari speech recognition, $0) →
-Voice Notes agent.
+attack rates guard OFF vs ON). **Voice:** tap-to-talk in VR over **LiveKit** (Windows runs the LiveKit voice agent; the iPhone
+joins the room from the WebGL app) → Voice Notes agent. Fallback: Safari speech recognition →
+`POST /voice` (text), so voice still works if LiveKit fails on venue Wi-Fi.
 
 ---
 
@@ -171,7 +172,7 @@ built WebGL player, not just from the `Tools → FloodVR` editor menu.
 | 4 | Claim Writer | ✅ | Claim + adjuster report from structured results only |
 | 5 | Vision Inspector (Nemotron VL) | ➕ | Labels damage in `screens/`, scored vs `screens.json`; scene text → guard |
 | 6 | Consistency / Fraud Checker | ➕ | Claims vs scene (e.g., "TV destroyed" but TV above waterline; padded contractor bids) |
-| 7 | Voice Notes | ➕ | Spoken notes → structured updates; short answers ("is this covered?") |
+| 7 | Voice Notes (LiveKit agent) | ➕ | Spoken notes → structured updates; short spoken answers ("is this covered?"). Transcripts are untrusted → guard |
 | tool | Hazard/Safety | ✅ | Hazard ranking; add mold urgency (dry-out within 48 h) |
 | tool | Pricing | ✅ | Rate table × quantities |
 | tool | Measurement tools | ➕ | Areas, wall lengths, flood-cut m² from `house_geometry.json` |
@@ -181,8 +182,14 @@ built WebGL player, not just from the `Tools → FloodVR` editor menu.
 tool-misuse/data-leak attacks. Headline = attack success rate guard OFF vs ON on **held-out
 Claude-written attacks**, + false-positive rate on clean evidence, + claim accuracy vs manifest.
 
-**Windows build order:** go live with keys → held-out evals → Vision Inspector → measurement
-tools → Consistency Checker → Voice Notes → `/callouts` → adjuster console.
+**Windows build order:** go live with keys ✅ → held-out evals ✅ (held-out #2: 53.3% detection
+miss; report end-to-end impact too) → Vision Inspector → measurement tools → Consistency Checker
+→ `/callouts` → Voice (LiveKit agent + `/voice/token` + text `/voice` fallback) → adjuster console.
+
+**Headline security metric (decided):** report BOTH (a) detection miss rate on fresh held-out
+attacks and (b) end-to-end impact rate: % of attacks that change the claim's payout, peril,
+coverage or status. Structural defenses (quarantine, schema, cost clamps, no approve path) should
+drive (b) near 0% even when detection misses.
 
 ---
 
