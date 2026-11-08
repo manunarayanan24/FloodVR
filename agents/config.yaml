@@ -19,9 +19,11 @@ models:
     role: Plans the run and merges agent output. Needs tool calling.
     tool_calling: true
     verified: 2026-11-07
+    # Fallbacks re-probed 2026-11-07 with a native tool call (llama-3.1-nemotron-*
+    # now 404). Both below returned a tool call.
     fallback_ids:
-      - nvidia/llama-3.1-nemotron-ultra-253b-v1
-      - nvidia/llama-3.1-nemotron-70b-instruct
+      - nvidia/nemotron-3-ultra-550b-a55b
+      - nvidia/nemotron-3.5-lightning-30b-a3b
   intake:
     provider: nvidia
     # nemotron-nano-3-30b-a3b is LISTED but 404s on chat completions.

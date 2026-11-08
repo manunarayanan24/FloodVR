@@ -30,6 +30,8 @@ from agents.pipeline.orchestrator import Run, StageOrderError
 from agents.schemas import AssessRequest, ClaimDraft, TraceStep
 
 MAX_TURNS = 10
+RATE_LIMIT_RETRIES = 4   # per model, on 429/403/503 only
+BACKOFF_S = 2.0          # 2, 4, 8, 16 s
 
 _SYSTEM = """You are the orchestrator of a flood-insurance claim assessment. You plan by calling tools, one or more per turn, and you see only counts and status flags.
 
@@ -115,16 +117,25 @@ def assess_planned(req: AssessRequest) -> ClaimDraft:
         for turns in range(1, MAX_TURNS + 1):
             resp = None
             for mid in [entry["id"], *entry.get("fallback_ids", [])]:
-                try:
-                    _throttle()
-                    resp = client.chat.completions.create(
-                        model=mid, messages=messages, tools=tools, tool_choice="auto",
-                        max_tokens=2048, temperature=0.0,
-                    )
-                    model_used = mid
+                # Rate limits (429/403/503) are transient: back off and retry the
+                # same model before moving on. Anything else -> next model.
+                for attempt in range(RATE_LIMIT_RETRIES + 1):
+                    try:
+                        _throttle()
+                        resp = client.chat.completions.create(
+                            model=mid, messages=messages, tools=tools, tool_choice="auto",
+                            max_tokens=2048, temperature=0.0,
+                        )
+                        model_used = mid
+                        break
+                    except Exception as exc:  # noqa: BLE001 - retry or try the next model
+                        errors.append(f"{mid}: {str(exc)[:120]}")
+                        transient = any(c in str(exc) for c in ("429", "403", "503", "timed out"))
+                        if not transient or attempt == RATE_LIMIT_RETRIES:
+                            break
+                        time.sleep(BACKOFF_S * (2 ** attempt))
+                if resp is not None:
                     break
-                except Exception as exc:  # noqa: BLE001 - try the next served model
-                    errors.append(f"{mid}: {str(exc)[:120]}")
             if resp is None:
                 break
             msg = resp.choices[0].message
