@@ -33,7 +33,14 @@ namespace FloodVR
 
         const int RingSegments = 48;
         const float RingInner = 0.78f;
-        const float LabelMetres = 0.70f; // panel width at scale 1
+        const float LabelMetres = 0.86f;  // panel width at scale 1
+        const float LabelPad = 0.04f;
+        const float TitleH = 0.09f;
+        const float BodyGap = 0.02f;
+        const float BodySize = 3.2f;     // body font size (world-space TMP units)
+        const float BodyMaxH = 0.75f;    // body text taller than this is shrunk to fit
+        const float LabelDistance = 0.8f; // label floats this far from the eyes (in front of nearly all geometry)
+        Transform _bgT, _barT;
 
         // Optional field Mac 1 is adding to DamageItem. Read via reflection so this compiles
         // whether or not it exists yet.
@@ -208,20 +215,54 @@ namespace FloodVR
             _title.text = title;
             _body.text = body;
 
-            // Constant apparent size: scale the panel with its distance. It sits just above the
-            // gaze point so it never covers what is being inspected.
-            float labelDist = Mathf.Clamp(dist - 0.25f, 0.45f, 3f);
-            _panel.transform.position = _head.position + _head.forward * labelDist + _head.up * (0.24f * labelDist);
+            // The label floats close to the eyes (so scene geometry such as a tipped fridge door
+            // can never poke through it) and is scaled with that distance so it always looks the
+            // same size. It sits just above the gaze point.
+            float labelDist = Mathf.Clamp(Mathf.Min(dist - 0.1f, LabelDistance), 0.3f, LabelDistance);
+            float h = LayoutPanel();
+            float up = Mathf.Min(h * 0.5f + 0.06f, 0.55f - h * 0.5f);
+            _panel.transform.position = _head.position + _head.forward * labelDist + _head.up * (up * labelDist);
             _panel.transform.localScale = Vector3.one * labelDist;
             FacePanel();
             _panel.SetActive(true);
+        }
+
+        // Sizes the panel to fit ALL the text (no clipping), top-aligned, and returns its height.
+        float LayoutPanel()
+        {
+            float tw = LabelMetres - 2f * LabelPad;
+
+            _body.enableAutoSizing = false;
+            float size = BodySize;
+            float bodyH;
+            while (true)
+            {
+                _body.fontSize = size;
+                bodyH = _body.GetPreferredValues(_body.text, tw, 0f).y;
+                if (bodyH <= BodyMaxH || size <= 1.4f) break;
+                size -= 0.2f;
+            }
+            bodyH = Mathf.Clamp(bodyH, 0.06f, BodyMaxH + 0.05f);
+
+            float h = LabelPad + TitleH + BodyGap + bodyH + LabelPad;
+            float top = h * 0.5f;
+
+            _bgT.localScale = new Vector3(LabelMetres, h, 1f);
+            _barT.localPosition = new Vector3(0f, top - 0.006f, -0.002f);
+
+            _title.rectTransform.sizeDelta = new Vector2(tw, TitleH);
+            _title.rectTransform.localPosition = new Vector3(0f, top - LabelPad - TitleH * 0.5f, -0.01f);
+
+            _body.rectTransform.sizeDelta = new Vector2(tw, bodyH);
+            _body.rectTransform.localPosition = new Vector3(0f, top - LabelPad - TitleH - BodyGap - bodyH * 0.5f, -0.01f);
+            return h;
         }
 
         void FacePanel()
         {
             Vector3 d = _panel.transform.position - _head.position;
             if (d.sqrMagnitude > 1e-4f)
-                _panel.transform.rotation = Quaternion.LookRotation(d, Vector3.up); // text front faces -Z
+                _panel.transform.rotation = Quaternion.LookRotation(d, _head.up); // text front faces -Z; rolls with the view so it never looks tilted
         }
 
         static void Describe(DamageItem di, out string title, out string body)
@@ -305,6 +346,7 @@ namespace FloodVR
             bg.transform.SetParent(_panel.transform, false);
             bg.transform.localScale = new Vector3(LabelMetres, 0.44f, 1f);
             Prepare(bg, MakeMat(new Color(0.04f, 0.06f, 0.10f, 1f)));
+            _bgT = bg.transform;
 
             var bar = GameObject.CreatePrimitive(PrimitiveType.Quad);
             bar.name = "Accent";
@@ -312,6 +354,7 @@ namespace FloodVR
             bar.transform.localPosition = new Vector3(0f, 0.214f, -0.002f);
             bar.transform.localScale = new Vector3(LabelMetres, 0.012f, 1f);
             Prepare(bar, MakeMat(dwellColor));
+            _barT = bar.transform;
 
             _title = MakeText("Title", new Vector3(0f, 0.15f, -0.01f), new Vector2(0.64f, 0.08f),
                                6f, FontStyles.Bold, dwellColor, TextAlignmentOptions.Left);
@@ -341,7 +384,7 @@ namespace FloodVR
             t.color = color;
             t.alignment = align;
             t.textWrappingMode = TextWrappingModes.Normal;
-            t.overflowMode = TextOverflowModes.Ellipsis;
+            t.overflowMode = TextOverflowModes.Overflow; // panel is sized to fit the text, so never clip
             return t;
         }
 
