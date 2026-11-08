@@ -43,13 +43,15 @@ models:
       - meta/llama-3.2-90b-vision-instruct
   guard:
     provider: nvidia
-    id: nvidia/nemotron-3.5-content-safety
-    role: Second detection layer after the rules.
+    # nvidia/nemotron-3.5-content-safety is LISTED but 404s on chat completions.
+    # This is the one that actually answers.
+    id: nvidia/llama-3.1-nemotron-safety-guard-8b-v3
+    role: Second detection layer after the rules. CURRENTLY DISABLED — see guard.* below.
     verified: 2026-11-07
     # nvidia/nemoguard-jailbreak-detect is NOT served on the hosted API (404) —
     # it ships as a downloadable NIM container. Fallbacks are tried in order.
     fallback_ids:
-      - nvidia/llama-3.1-nemotron-safety-guard-8b-v3
+      - nvidia/nemotron-3.5-content-safety
       - nvidia/llama-3.1-nemoguard-8b-content-safety
       - meta/llama-guard-4-12b
   claude_fallback:
