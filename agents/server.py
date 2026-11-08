@@ -348,6 +348,12 @@ def voice_client() -> FileResponse:
                         headers={"Cache-Control": "no-cache"})
 
 
+@app.get("/sensor-test")
+def sensor_test() -> FileResponse:
+    """Phone motion-sensor check: does head-look (gyro) work on this phone and browser?"""
+    return FileResponse(CONSOLE_DIR / "sensor.html")
+
+
 @app.get("/voice-test")
 def voice_test() -> FileResponse:
     """Phone test page: open on the iPhone, tap Connect, hold to talk."""

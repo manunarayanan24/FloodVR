@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FloodVR Motion Test</title>
+<style>
+  :root { --bg:#0f171d; --panel:#16222b; --ink:#e3ecf2; --muted:#94a6b3; --ok:#7fd0a0; --bad:#f08a7c; --accent:#6db6de; color-scheme: dark; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.45 system-ui, -apple-system, sans-serif;
+         padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 28px max(18px, env(safe-area-inset-left)); }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p { margin:0 0 12px; color:var(--muted); }
+  button { font:600 19px system-ui; color:var(--bg); background:var(--accent); border:0; border-radius:14px; width:100%; padding:20px; margin:8px 0 16px; }
+  .box { background:var(--panel); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  .big { font:600 26px ui-monospace, monospace; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  small { color:var(--muted); display:block; margin-bottom:2px; font:13px ui-monospace, monospace; text-transform:uppercase; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<h1>Motion test</h1>
+<p>Checks that this phone and browser can turn the view when you move the phone.</p>
+<button id="go" type="button">Tap to start</button>
+<div class="box"><small>Permission</small><div id="perm" class="big">not asked yet</div></div>
+<div class="box"><small>Live reading (move the phone)</small><div id="vals" class="big">-</div></div>
+<div class="box"><small>Result</small><div id="result">Tap the button, then choose Allow when your phone asks about motion and orientation.</div></div>
+<script>
+  // All text is set with textContent.
+  var $ = function (id) { return document.getElementById(id); };
+  var count = 0, first = null, moved = false;
+  function onMotion(e) {
+    if (e.alpha === null || e.alpha === undefined) return;
+    count++;
+    if (!first) first = [e.alpha, e.beta, e.gamma];
+    if (Math.abs(e.alpha - first[0]) > 8 || Math.abs(e.beta - first[1]) > 8 || Math.abs(e.gamma - first[2]) > 8) moved = true;
+    $("vals").textContent = Math.round(e.alpha) + "  " + Math.round(e.beta) + "  " + Math.round(e.gamma);
+    $("result").className = moved ? "ok" : "";
+    $("result").textContent = moved
+      ? "Working. Your phone is sending motion data, so head-look will work in the app."
+      : "Receiving data (" + count + "). Now tilt or turn the phone and watch the numbers change.";
+  }
+  function listen() {
+    window.addEventListener("deviceorientation", onMotion, true);
+    setTimeout(function () {
+      if (count === 0) {
+        $("result").className = "bad";
+        $("result").textContent = "No motion data is arriving. Open this page in Safari (not inside another app), fully close Safari and reopen it, then tap Allow when asked. On Android use Chrome and allow Motion sensors for this site.";
+      }
+    }, 3000);
+  }
+  $("go").addEventListener("click", function () {
+    var D = window.DeviceOrientationEvent;
+    if (!D) { $("perm").textContent = "no sensor in this browser"; $("perm").className = "big bad"; return; }
+    if (typeof D.requestPermission === "function") {
+      D.requestPermission().then(function (r) {
+        $("perm").textContent = r;
+        $("perm").className = "big " + (r === "granted" ? "ok" : "bad");
+        if (r === "granted") listen();
+        else {
+          $("result").className = "bad";
+          $("result").textContent = "Motion access was denied, so the app falls back to swiping. Fix: fully close Safari (swipe it away), open the link again, tap Enter VR and choose Allow. If it never asks again: Settings > Safari > Clear History and Website Data.";
+        }
+      }).catch(function (e) {
+        $("perm").textContent = "error: " + (e && e.message ? e.message : e); $("perm").className = "big bad";
+      });
+    } else { $("perm").textContent = "granted (no prompt on this device)"; $("perm").className = "big ok"; listen(); }
+  });
+</script>
+</body>
+</html>
