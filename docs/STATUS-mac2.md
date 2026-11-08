@@ -12,6 +12,10 @@
 
 **Done:** Build compiled clean, deployed, iPhone-tested end to end. Stereo view and head tracking work. Gaze labels auto-fit the panel. Walk-between-StandPoints by gazing at blue beams (visible through walls), glides over 1-2 s with a comfort fade. Headset callouts (`/callouts`) show 16 real server callouts (6 red hazards, amber "Injection caught" on the fridge note, blue waterline + flood-cut area, green undamaged laptop/electronics). Offline sample callouts still bundled as a venue-wifi safety net. LiveKit voice integrated using Abhinav's `/voice/client.js`, `FloodVRVoice.jslib`, `LiveKitVoice.cs`; tap once to open the mic, tap again to send; "You said" + "Agent" captions on the HUD; NVIDIA Magpie speaks the reply. Safari speech recognition kept as fallback. Tested on an iPhone in the cardboard viewer: all four features work end to end.
 
+**Done (2026-11-08 morning):** Repointed `StreamingAssets/config.json` at Abhinav's new tunnel `https://achieve-custom-pressed-ellen.trycloudflare.com` (the old `starter-king-jackson-avon` died while his PC slept). Flagged by lead in README section 9. Fresh phones will now get live callouts + voice without needing `?api=...`. Awaiting rebuild + redeploy.
+
+**Next:** Rebuild + redeploy (`bash ~/ship.sh`) then re-test on the iPhone. Also: after Mac 1's visual pass lands, rebuild + redeploy again + re-test.
+
 **Blocked:** Nothing. All of Mac 2's lane is done.
 
 **Waiting on others:**
