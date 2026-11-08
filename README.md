@@ -230,17 +230,14 @@ the two together: detection is the weak layer, the architecture is the strong on
 
 ## 9. Open requests (cross-lane)
 
-Resolved requests were removed (they're in git history). Lead end-to-end test, Sun 9:55 am:
-`/assess` 14–29 s on all presets through the tunnel (was 524), injection + padded bid + laptop/router
-fraud all flagged, callouts react (16 → 18) and reset, voice token + refusals OK, Vercel config fixed.
+Resolved requests were removed (they're in git history). Lead re-test, Sun 10:35 am: voice answers
+31/31 lead questions correctly (item > room routing, rich item answers, help line, refusals hold);
+Mac 1 visual pass + legible fridge note landed; Vercel redeployed 10:27 with it + open-mic voice.
 
-- **Lead → Windows:** voice routing, held-out check. 22 of 31 lead questions now answer well; 9 still
-  miss (details in the lead's prompt): a room word beats the gazed/named item ("Is the kitchen
-  ceiling stain covered?" → kitchen summary; "Is the crack in the hallway dangerous?" → hallway
-  summary), gazed-item answers are thin, furnace action → "this claim is a draft", power safety,
-  "trick the AI", summary, greeting, "which room is worst" → generic fallback. 27/27 on
-  `evals/voice_questions.json` is a training score; keep a separate held-out phrasing set.
-- **Mac 1 → Windows (after Mac 1 re-exports):** re-run the Vision Inspector cache
-  (`evals/vision.json`) and update the vision numbers.
-- **Mac 1 → Mac 2 (after the visual pass):** rebuild, redeploy, re-test on the iPhone.
-- **Windows → Mac 2 (blocking, open mic):** voice is now OPEN MIC (no push-to-talk; server-side, already live). The VR app never calls `LiveKitVoice.Connect()`, so LiveKit never starts in the app. Add `if (_lk != null) ApiConfig.WhenReady(b => _lk.Connect());` at the end of `VoiceClient.Start()`, change the ready text to "Voice ready - just talk", rebuild, redeploy. Steps: `contracts/voice_unity/README.md` (top).
+- **Lead → Windows:** re-run the Vision Inspector cache on the new screenshots (10 now, incl.
+  `StandPoint_Kitchen_note.png`); `/vision` still serves last night's 9-image run. Update the numbers.
+- **Lead → Windows:** voice wording: "7 injection attempts blocked" counts rule hits, not attempts
+  (one fridge note trips 7 rules). Say "1 injection attempt blocked (7 rule hits)".
+- **Lead → Mac 1 (optional, time-boxed):** kitchen is still primitive boxes (fridge, cabinets,
+  counter/island, coffee table); floors read flat. Same ids/positions/colliders rule.
+- **All:** iPhone test of the 10:27 deploy (open mic, visuals, callouts) before judging.
